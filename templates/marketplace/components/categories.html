@@ -1,0 +1,69 @@
+<!-- Category Navigation Strip -->
+<nav class="bg-white border-b border-zinc-200/80 sticky top-16 sm:top-20 z-30 shadow-xs" aria-label="Flower Categories">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center gap-2 py-2.5">
+      
+      <!-- Label 'Categories' (Matches Wireframe) -->
+      <div class="hidden sm:flex items-center gap-1.5 pr-3 border-r border-zinc-200 text-xs font-bold uppercase tracking-wider text-zinc-500 shrink-0 select-none">
+        <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+        </svg>
+        <span>Categories</span>
+      </div>
+
+      <!-- Left Scroll Arrow -->
+      <button 
+        type="button" 
+        id="scroll-left-btn"
+        class="hidden sm:flex p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 transition shrink-0"
+        aria-label="Scroll categories left"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+
+      <!-- Horizontally Scrollable Categories Container -->
+      <div 
+        id="categories-container" 
+        class="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth flex-1 py-1"
+      >
+        <!-- Categories populated dynamically by JS and fallback server-rendered items -->
+        {% for cat in categories %}
+          <button 
+            type="button" 
+            class="category-pill shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition select-none {% if forloop.first %}bg-emerald-800 text-white border-emerald-800 shadow-xs{% else %}bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50{% endif %}"
+            data-category-id="{{ cat.id }}"
+          >
+            <span>{{ cat.name }}</span>
+          </button>
+        {% empty %}
+          <!-- Fallback items if categories not passed -->
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-emerald-800 text-white border border-emerald-800" data-category-id="all">All Flowers</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="roses">Roses</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="bouquets">Bouquets</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="wedding">Wedding Flowers</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="birthday">Birthday Flowers</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="arrangements">Floral Arrangements</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="plants">Plants</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="corporate">Corporate Gifting</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="bulk">Bulk Flowers</button>
+          <button type="button" class="category-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-white text-zinc-700 border border-zinc-200" data-category-id="seasonal">Seasonal Flowers</button>
+        {% endfor %}
+      </div>
+
+      <!-- Right Scroll Arrow (Matches Wireframe ->) -->
+      <button 
+        type="button" 
+        id="scroll-right-btn"
+        class="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition shrink-0 flex items-center justify-center shadow-xs"
+        aria-label="Scroll categories right"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+    </div>
+  </div>
+</nav>

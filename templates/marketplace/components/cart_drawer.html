@@ -1,0 +1,131 @@
+<!-- Cart Slide-Over Drawer Component -->
+<div 
+  id="cart-drawer" 
+  class="fixed inset-0 z-50 pointer-events-none" 
+  aria-modal="true" 
+  role="dialog"
+>
+  <!-- Backdrop -->
+  <div 
+    id="cart-backdrop" 
+    class="drawer-backdrop fixed inset-0 bg-zinc-900/50 backdrop-blur-xs opacity-0 transition-opacity"
+  ></div>
+
+  <!-- Drawer Container -->
+  <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+    <div class="drawer-panel w-screen max-w-md bg-white shadow-2xl flex flex-col transform translate-x-full transition-transform ease-in-out duration-300">
+      
+      <!-- Drawer Header -->
+      <div class="px-5 py-4 border-b border-zinc-200 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-bold text-zinc-900 text-base">Shopping Cart</h3>
+            <span class="text-[11px] text-zinc-500 font-medium">Direct farm harvest &amp; cold-chain dispatched</span>
+          </div>
+        </div>
+        <button 
+          type="button" 
+          id="close-cart-btn"
+          class="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 rounded-lg transition"
+          aria-label="Close cart"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Free Delivery Progress Bar -->
+      <div class="bg-emerald-50/70 px-5 py-2.5 border-b border-emerald-100 flex items-center gap-2 text-xs text-emerald-900">
+        <svg class="w-4 h-4 text-emerald-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        <span class="font-medium">Free express insulated delivery on orders over ₹1,500</span>
+      </div>
+
+      <!-- Empty Cart State -->
+      <div id="cart-empty-view" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <div class="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 mb-3">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+          </svg>
+        </div>
+        <h4 class="font-semibold text-zinc-800 text-sm">Your cart is empty</h4>
+        <p class="text-xs text-zinc-500 mt-1 max-w-xs">
+          Explore fresh roses, orchids, and wholesale flower crates to add items.
+        </p>
+        <button 
+          type="button" 
+          onclick="window.BloomMart.closeCart()"
+          class="mt-4 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 transition"
+        >
+          Explore Catalog
+        </button>
+      </div>
+
+      <!-- Cart Content (Items list + Summary) -->
+      <div id="cart-content-view" class="hidden flex-1 flex flex-col overflow-hidden">
+        
+        <!-- Items List (Scrollable) -->
+        <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Order Summary & Checkout -->
+        <div class="p-5 border-t border-zinc-200 bg-zinc-50/90 space-y-3">
+          
+          <div class="space-y-1.5 text-xs text-zinc-600">
+            <div class="flex justify-between">
+              <span>Items Subtotal</span>
+              <span id="cart-subtotal" class="font-semibold text-zinc-800">₹0</span>
+            </div>
+            <div class="flex justify-between">
+              <span>GST (5% Flowers)</span>
+              <span id="cart-tax" class="font-medium text-zinc-700">₹0</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Express Delivery</span>
+              <span class="text-emerald-700 font-semibold">Standard Flat ₹99 (or Free &gt;₹1.5k)</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t border-zinc-200 text-sm font-bold text-zinc-900">
+              <span>Grand Total</span>
+              <span id="cart-total" class="text-emerald-800">₹0</span>
+            </div>
+          </div>
+
+          <!-- Checkout CTA -->
+          <button 
+            type="button" 
+            onclick="alert('Proceeding to Checkout! In production, this redirects to Django payment gateway / checkout flow.')"
+            class="w-full py-3 px-4 text-xs sm:text-sm font-semibold rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white shadow-md flex items-center justify-center gap-2 transition active:scale-[0.99]"
+          >
+            <span>Proceed to Checkout</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </button>
+
+          <!-- Trust Badges -->
+          <div class="flex items-center justify-center gap-4 pt-1 text-[10px] text-zinc-400">
+            <span class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              Farm Fresh Guarantee
+            </span>
+            <span class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              GST Invoicing
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>

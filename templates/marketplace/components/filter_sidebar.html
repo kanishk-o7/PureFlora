@@ -1,0 +1,161 @@
+<!-- Desktop Filter Sidebar Component (260px Sticky) -->
+<aside class="w-64 shrink-0 hidden lg:block" aria-label="Product Filters">
+  <div class="sticky top-32 bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs">
+    
+    <!-- Sidebar Header (Matches Wireframe: Filters + Clear) -->
+    <div class="flex items-center justify-between pb-3.5 border-b border-zinc-200">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
+        <h2 class="font-bold text-zinc-900 text-base tracking-tight">Filters</h2>
+      </div>
+      <button 
+        type="button" 
+        id="clear-filters-btn"
+        class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition"
+      >
+        Clear all
+      </button>
+    </div>
+
+    <!-- Filter Form -->
+    <form id="filter-sidebar-form" class="divide-y divide-zinc-100 text-sm">
+      
+      <!-- 1. Price Section -->
+      <fieldset class="py-4">
+        <legend class="font-semibold text-xs uppercase tracking-wider text-zinc-500 mb-3">
+          Price Range
+        </legend>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-price" value="under_500" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">Under ₹500</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-price" value="500_1000" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">₹500 – ₹1,000</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-price" value="1000_2500" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">₹1,000 – ₹2,500</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-price" value="above_2500" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">₹2,500+</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- 2. Quantity Section -->
+      <fieldset class="py-4">
+        <legend class="font-semibold text-xs uppercase tracking-wider text-zinc-500 mb-3">
+          Quantity / Stems
+        </legend>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-quantity" value="1_10" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">1 – 10 stems</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-quantity" value="10_50" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">10 – 50 stems</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-quantity" value="50_100" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">50 – 100 stems</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-quantity" value="100_plus" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs group-hover:translate-x-0.5 transition-transform">100+ bulk</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- 3. Color Section with visual swatches -->
+      <fieldset class="py-4">
+        <legend class="font-semibold text-xs uppercase tracking-wider text-zinc-500 mb-3">
+          Color
+        </legend>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-color" value="Red" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="w-3 h-3 rounded-full bg-red-500 border border-zinc-300 shrink-0"></span>
+            <span class="text-xs">Red</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-color" value="White" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="w-3 h-3 rounded-full bg-white border border-zinc-300 shrink-0"></span>
+            <span class="text-xs">White</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-color" value="Pink" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="w-3 h-3 rounded-full bg-pink-400 border border-zinc-300 shrink-0"></span>
+            <span class="text-xs">Pink</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-color" value="Yellow" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="w-3 h-3 rounded-full bg-amber-400 border border-zinc-300 shrink-0"></span>
+            <span class="text-xs">Yellow</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-color" value="Mixed" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="w-3 h-3 rounded-full bg-gradient-to-tr from-pink-400 via-amber-300 to-indigo-400 border border-zinc-300 shrink-0"></span>
+            <span class="text-xs">Mixed Colors</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- 4. Flower Type Section -->
+      <fieldset class="py-4">
+        <legend class="font-semibold text-xs uppercase tracking-wider text-zinc-500 mb-3">
+          Flower Type
+        </legend>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-type" value="Roses" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs">Roses</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-type" value="Lilies" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs">Lilies</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-type" value="Orchids" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs">Orchids</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-type" value="Carnations" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs">Carnations</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-type" value="Marigold" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs">Marigold</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-type" value="Mixed" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs">Mixed Blooms</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- 5. Availability Section -->
+      <fieldset class="pt-4">
+        <legend class="font-semibold text-xs uppercase tracking-wider text-zinc-500 mb-3">
+          Availability
+        </legend>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-availability" value="in_stock" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs font-medium text-emerald-700">In Stock</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-zinc-700 hover:text-zinc-900 group">
+            <input type="checkbox" name="filter-availability" value="pre_order" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300">
+            <span class="text-xs font-medium text-amber-700">Pre-order</span>
+          </label>
+        </div>
+      </fieldset>
+
+    </form>
+  </div>
+</aside>
