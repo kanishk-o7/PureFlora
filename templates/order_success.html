@@ -21,8 +21,9 @@
       {% for item in order.items.all %}<div class="summary-line"><span>{{ item.quantity }} × {{ item.product_name }} · {{ item.get_fulfillment_status_display }}</span><strong>₹{{ item.line_total }}</strong></div>{% endfor %}
       <div class="summary-total"><span>Total due on delivery</span><strong>₹{{ order.total_amount }}</strong></div>
       <div class="order-confirmation-actions"><a class="button button-dark" href="{% url 'order_detail' order.pk %}">Track this order <span>&#8594;</span></a><a class="text-link" href="{% url 'order_history' %}">View all orders</a><a class="text-link" href="{% url 'products' %}">Continue shopping</a></div>
-      {% if can_cancel %}<form class="cancel-order-form" method="post" action="{% url 'cancel_order' order.pk %}" onsubmit="return confirm('Cancel this order? The items will be returned to stock.');">{% csrf_token %}<button class="button cancel-order-button" type="submit">Cancel this order</button><small>You can cancel until an item has shipped.</small></form>{% endif %}
+      {% if can_cancel %}<div class="cancel-order-form"><button class="button cancel-order-button" type="button" data-dialog-open="cancel-order-{{ order.pk }}">Cancel this order</button><small>You can cancel until an item has shipped.</small></div>
+    <dialog class="cancel-confirmation-dialog" id="cancel-order-{{ order.pk }}" aria-labelledby="cancel-order-title-{{ order.pk }}" aria-describedby="cancel-order-description-{{ order.pk }}"><div class="modal-card"><button class="modal-close" type="button" data-dialog-close aria-label="Close confirmation">&times;</button><span class="eyebrow">ORDER {{ order.order_number }}</span><h2 id="cancel-order-title-{{ order.pk }}">Cancel this order?</h2><p id="cancel-order-description-{{ order.pk }}">The order will be cancelled and its items returned to stock. Are you sure you want to continue?</p><div class="cancel-confirm-actions"><button class="button button-light" type="button" data-dialog-close>No, keep order</button><form class="cancel-confirm-form" method="post" action="{% url 'cancel_order' order.pk %}">{% csrf_token %}<button class="button cancel-order-button" type="submit">Yes, cancel order</button></form></div></div></dialog>{% endif %}
     </div></section>
   </main>
-</body>
+<script src="{% static 'js/order-cancel-confirm.js' %}"></script></body>
 </html>
