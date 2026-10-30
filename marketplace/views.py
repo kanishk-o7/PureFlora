@@ -172,6 +172,12 @@ def add_review(request, product_id, order_id):
 def _get_cart(user):
     return Cart.objects.get_or_create(customer=user)[0]
 
+def _customer_can_cancel_order(order):
+    statuses = list(order.items.values_list("fulfillment_status", flat=True))
+    return bool(statuses) and any(status in {"pending", "processing"} for status in statuses) and all(
+        status in {"pending", "processing", "cancelled"} for status in statuses
+    )
+
 def cart_view(request):
     items = []
     total = Decimal("0.00")
@@ -283,7 +289,10 @@ def order_success(request, order_number):
     order = get_object_or_404(Order.objects.prefetch_related("items"), order_number=order_number)
     if not (request.user.is_superuser or request.user.role == "admin" or order.customer_id == request.user.id):
         return access_denied(request)
-    return render(request, "order_success.html", {"order": order})
+    return render(request, "order_success.html", {
+        "order": order,
+        "can_cancel": request.user.role == "customer" and _customer_can_cancel_order(order),
+    })
 
 def register(request):
     form = RegistrationForm(request.POST or None)
@@ -418,7 +427,7 @@ def order_detail(request, order_id):
     if request.user.role != "customer":
         return access_denied(request)
     order = get_object_or_404(
-        Order.objects.filter(customer=request.user).prefetch_related("items__florist"), pk=order_id
+        Order.objects.filter(customer=request.user).prefetch_related("items__florist", "items__product"), pk=order_id
     )
     reviewed_product_ids = set(Review.objects.filter(
         customer=request.user, order=order,
@@ -426,7 +435,45 @@ def order_detail(request, order_id):
     return render(request, "marketplace/order_detail.html", {
         "order": order,
         "reviewed_product_ids": reviewed_product_ids,
+        "can_cancel": _customer_can_cancel_order(order),
     })
+
+@require_POST
+@login_required
+def cancel_order(request, order_id):
+    """Cancel a customer's order before any line has shipped and restore its stock once."""
+    if request.user.role != "customer":
+        return access_denied(request)
+
+    with transaction.atomic():
+        order = get_object_or_404(
+            Order.objects.select_for_update().filter(customer=request.user), pk=order_id
+        )
+        items = list(order.items.select_for_update().select_related("product").order_by("pk"))
+        allowed_statuses = {"pending", "processing", "cancelled"}
+        cancellable = (
+            bool(items)
+            and any(item.fulfillment_status in {"pending", "processing"} for item in items)
+            and all(item.fulfillment_status in allowed_statuses for item in items)
+        )
+        if not cancellable:
+            messages.error(request, "This order can no longer be cancelled because fulfillment has started shipping.")
+        else:
+            for item in items:
+                if item.fulfillment_status == "cancelled":
+                    continue
+                product = Product.objects.select_for_update().get(pk=item.product_id)
+                if not item.stock_restored:
+                    product.stock += item.quantity
+                    product.save(update_fields=["stock"])
+                item.fulfillment_status = "cancelled"
+                item.stock_restored = True
+                item.save(update_fields=["fulfillment_status", "stock_restored"])
+            order.sync_fulfillment()
+
+    if cancellable:
+        messages.success(request, "Your order was cancelled. The flowers are back in stock.")
+    return redirect("order_detail", order_id=order.pk)
 
 @role_required("admin")
 def admin_dashboard(request):

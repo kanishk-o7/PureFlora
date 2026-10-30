@@ -57,9 +57,11 @@ class CartAndCheckoutTests(TestCase):
         self.assertContains(confirmation, "Order confirmed")
         self.assertContains(confirmation, order.order_number)
         self.assertContains(confirmation, "Track this order")
+        self.assertContains(confirmation, "Cancel this order")
         tracking_page = self.client.get(reverse("order_detail", args=[order.pk]))
         self.assertContains(tracking_page, "waiting for the florist")
         self.assertContains(tracking_page, "1 Bloom Street")
+        self.assertContains(tracking_page, "Cancel order")
 
     def test_checkout_rechecks_stock_and_leaves_cart_when_stock_is_insufficient(self):
         cart = Cart.objects.create(customer=self.customer)
