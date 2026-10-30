@@ -2,24 +2,63 @@
 
 The original HTML/CSS frontend remains under its original names and styling. Django renders the existing home, product listing, cart, account, and florist dashboard pages; workflow pages for product details, COD checkout, order success, florist orders, and marketplace administration use the same styles. The standalone root-level `.html` prototype uses browser-local demo data; use the Django server routes for database-backed orders.
 
-## Run locally
+## First-time setup (Windows PowerShell)
 
-From this directory, activate the project virtual environment and run:
+Open the project folder in VS Code, then choose **Terminal → New Terminal**. Make sure the terminal is in the folder that contains `manage.py` (the Django project folder, not its parent folder).
+
+Requirements: Python 3.10 or newer and an internet connection for installing Python packages and loading the sample flower images.
+
+Create a virtual environment, install dependencies, set up the local SQLite database, load sample flowers, and start the server:
 
 ```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python manage.py makemigrations marketplace
 python manage.py migrate
 python manage.py seed_flowers
-python manage.py createsuperuser
 python manage.py runserver
 ```
 
-The florist product form accepts either an uploaded image or a remote image URL. Uploaded images are served from `/media/` during local development; remote image URLs from the original seed catalog remain as fallback. Product listings support search, category, maximum price, stock, sorting, and pagination.
+If PowerShell blocks `Activate.ps1`, allow it for this terminal only and activate again:
 
-Open `http://127.0.0.1:8000/`. The Django admin is at `/django-admin/`, and the marketplace admin overview is at `/market-admin/` for a superuser.
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
 
-The `seed_flowers` command imports the twelve flower listings from the original frontend demo and can be run again safely. Then register customer and florist accounts through `/accounts/register/`. Florists can create additional listings from the florist dashboard. Customers must sign in to add items and place orders. Database-backed checkout creates a persistent order, reserves stock, records the delivery address, and lets florists update fulfillment status. Payment is Cash on Delivery; no online payment provider is configured.
+Open **http://127.0.0.1:8000/** in your browser. Keep the terminal open while using the site; press **Ctrl+C** there to stop the server.
+
+### Run it again later
+
+Open a terminal in the project folder and run:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python manage.py runserver
+```
+
+### Accounts and admin
+
+Register customer and florist accounts at `/accounts/register/`. For admin access, create a local superuser:
+
+```powershell
+python manage.py createsuperuser
+```
+
+Then sign in at `/accounts/login/`. Django admin is at `/django-admin/`; the marketplace dashboard is at `/market-admin/`.
+
+### Common startup fixes
+
+- **`py` is not recognized:** install Python 3.10+ and enable the Python launcher / PATH option, then reopen the terminal.
+- **`No module named django` or `PIL`:** activate `.venv` and run `python -m pip install -r requirements.txt` again.
+- **Missing database tables:** run `python manage.py migrate` from the project folder.
+- **No products appear:** run `python manage.py seed_flowers`.
+- **Port 8000 is already in use:** run `python manage.py runserver 8001`, then open `http://127.0.0.1:8001/`.
+
+The `seed_flowers` command safely imports or updates the twelve sample flower listings. New database migrations are not needed for a normal fresh setup; run `makemigrations` only after changing Django models. This configuration is for local development (`DEBUG=True`), not public production hosting.
+
+The florist product form accepts an uploaded image or a remote image URL. Uploaded images are served from `/media/` during local development. Product listings support search, category, maximum price, stock, sorting, and pagination. Customers sign in to add products and place COD orders; florists manage listings and fulfillment in their dashboard. No online payment provider is configured.
 
 ## Main app files
 
