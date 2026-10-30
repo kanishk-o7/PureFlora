@@ -6,10 +6,10 @@ from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
 from django.db import IntegrityError
-from django.db.models import Avg, Count, Q, Sum, F, Prefetch
+from django.db.models import Avg, Count, Q, Sum, F, Prefetch, ExpressionWrapper, DecimalField
 from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -47,10 +47,10 @@ def role_required(*roles):
     return decorator
 
 def home(request):
-    return render(request, "index.html", {"featured_products": Product.objects.filter(is_active=True, stock__gt=0).select_related("category", "florist")[:4]})
+    return render(request, "index.html", {"featured_products": Product.objects.filter(is_active=True, florist__is_active=True, stock__gt=0).select_related("category", "florist")[:4]})
 
 def products(request):
-    items = Product.objects.filter(is_active=True).select_related("category", "florist")
+    items = Product.objects.filter(is_active=True, florist__is_active=True).select_related("category", "florist")
     category = request.GET.get("category", "")
     search = request.GET.get("q", "")
     max_price = request.GET.get("max_price", "1000")
@@ -95,7 +95,7 @@ def products(request):
     })
 
 def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk, is_active=True)
+    product = get_object_or_404(Product, pk=pk, is_active=True, florist__is_active=True)
     context = {"product": product,
                "reviews": product.reviews.select_related("customer", "order"),
                "review_count": product.total_reviews,
@@ -650,12 +650,69 @@ def cancel_order(request, order_id):
         messages.success(request, "Your order was cancelled. The flowers are back in stock.")
     return redirect("order_detail", order_id=order.pk)
 
-@role_required("admin")
-def admin_dashboard(request):
-    context = {"orders": Order.objects.select_related("customer").order_by("-created_at")[:20], "products": Product.objects.select_related("florist", "category"),
-               "florists": CustomUser.objects.filter(role="florist"), "customers": CustomUser.objects.filter(role="customer"),
-               "order_count": Order.objects.count(), "sales_total": Order.objects.exclude(order_status="cancelled").aggregate(total=Sum("total_amount"))["total"] or 0}
-    return render(request, "admin_dashboard.html", context)
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+def market_admin_dashboard(request):
+    delivered_value = ExpressionWrapper(F("unit_price") * F("quantity"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    revenue = OrderItem.objects.filter(fulfillment_status="delivered").aggregate(total=Sum(delivered_value))["total"] or Decimal("0.00")
+    active_orders = Order.objects.filter(order_status__in=["pending", "confirmed", "shipped", "partially_fulfilled"]).count()
+    delivered_orders = Order.objects.filter(order_status="delivered").count()
+    cancelled_orders = Order.objects.filter(order_status="cancelled").count()
+    top_products = list(Product.objects.filter(order_items__fulfillment_status="delivered")
+        .annotate(units_sold=Sum("order_items__quantity", filter=Q(order_items__fulfillment_status="delivered")))
+        .filter(units_sold__gt=0).order_by("-units_sold", "name")[:5])
+    recent_orders = Order.objects.select_related("customer").order_by("-created_at")[:10]
+    context = {
+        "revenue": revenue,
+        "total_orders": Order.objects.count(),
+        "active_orders": active_orders,
+        "delivered_orders": delivered_orders,
+        "cancelled_orders": cancelled_orders,
+        "customer_count": CustomUser.objects.filter(role="customer", is_active=True).count(),
+        "florist_count": CustomUser.objects.filter(role="florist").count(),
+        "product_count": Product.objects.count(),
+        "low_stock_count": Product.objects.filter(stock__lte=5).count(),
+        "top_products": top_products,
+        "recent_orders": recent_orders,
+    }
+    return render(request, "marketplace/market_admin/overview.html", context)
+
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+def market_admin_orders(request):
+    orders = Order.objects.select_related("customer").order_by("-created_at")
+    return render(request, "marketplace/market_admin/orders.html", {"orders": orders})
+
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+def market_admin_florists(request):
+    florists = list(CustomUser.objects.filter(role="florist").select_related("florist_profile").order_by("username"))
+    line_value = ExpressionWrapper(F("unit_price") * F("quantity"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    for florist in florists:
+        florist.product_count = Product.objects.filter(florist=florist).count()
+        florist.fulfilled_sales = OrderItem.objects.filter(
+            florist=florist, fulfillment_status="delivered",
+        ).aggregate(total=Sum(line_value))["total"] or Decimal("0.00")
+    return render(request, "marketplace/market_admin/florists.html", {"florists": florists})
+
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+@require_POST
+def market_admin_toggle_florist(request, florist_id):
+    florist = get_object_or_404(CustomUser, pk=florist_id, role="florist")
+    florist.is_active = not florist.is_active
+    florist.save(update_fields=["is_active"])
+    messages.success(request, f"{florist.username} is now {'active' if florist.is_active else 'suspended'}.")
+    return redirect("market_admin_florists")
+
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+def market_admin_reviews(request):
+    reviews = Review.objects.select_related("product", "customer").order_by("-created_at")
+    return render(request, "marketplace/market_admin/reviews.html", {"reviews": reviews})
+
+@user_passes_test(lambda user: user.is_staff or user.is_superuser)
+@require_POST
+def market_admin_delete_review(request, review_id):
+    review = get_object_or_404(Review, pk=review_id)
+    review.delete()
+    messages.success(request, "Review deleted.")
+    return redirect("market_admin_reviews")
 
 def tracking(request):
     """Keep the legacy tracking URL pointed at the signed-in customer's order list."""

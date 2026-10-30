@@ -12,7 +12,7 @@
   <div class="announcement">PURE FLORA CHECKOUT · CASH ON DELIVERY</div>
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a>
-    <nav class="main-nav"><a href="{% url 'products' %}">Shop flowers</a><a href="{% url 'cart' %}">Your bag</a>{% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}</nav>
+    <nav class="main-nav"><a href="{% url 'products' %}">Shop flowers</a><a href="{% url 'cart' %}">Your bag</a>{% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}{% if request.user.is_staff or request.user.is_superuser %}<a href="{% url 'admin_dashboard' %}">Marketplace Admin</a>{% endif %}</nav>
   </header>
   <main class="inner-page">
     <section class="page-hero compact-hero"><div class="eyebrow">SECURE ORDER REVIEW</div><h1>Delivery <em>details.</em></h1><p>Confirm where to send your flowers. You’ll pay cash when they arrive.</p></section>

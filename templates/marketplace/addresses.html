@@ -8,7 +8,7 @@
 <body>
   {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
   <div class="announcement">YOUR DELIVERY DETAILS</div>
-  <header class="site-header"><a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a><nav class="main-nav"><a href="{% url 'account' %}">My account</a><a href="{% url 'order_history' %}">My Orders</a><a href="{% url 'products' %}">Shop flowers</a></nav></header>
+  <header class="site-header"><a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a><nav class="main-nav"><a href="{% url 'account' %}">My account</a><a href="{% url 'order_history' %}">My Orders</a><a href="{% url 'products' %}">Shop flowers</a>{% if request.user.is_staff or request.user.is_superuser %}<a href="{% url 'admin_dashboard' %}">Marketplace Admin</a>{% endif %}</nav></header>
   <main class="inner-page dashboard-page">
     <section class="dashboard-welcome"><div><div class="eyebrow">YOUR ACCOUNT</div><h1>Saved <em>addresses.</em></h1><p>Keep delivery details handy for a quicker checkout.</p></div><a class="text-link" href="{% url 'account' %}">Back to account</a></section>
     <section class="account-overview-grid">
