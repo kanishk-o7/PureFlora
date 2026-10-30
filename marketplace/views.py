@@ -92,6 +92,7 @@ def products(request):
         "sort": sort,
         "cart_count": cart_count,
         "added_product_id": added_product_id,
+        "is_htmx": request.headers.get("HX-Request", "").lower() == "true",
     }
     template = "marketplace/partials/product_grid.html" if request.headers.get("HX-Request", "").lower() == "true" else "products.html"
     return render(request, template, context)

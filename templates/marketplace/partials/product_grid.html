@@ -1,5 +1,7 @@
+{% if is_htmx %}
 <p id="resultCount" hx-swap-oob="true">Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ result_count }} flowers</p>
 <strong id="priceRangeValue" hx-swap-oob="true">&#8377;{{ max_price }}</strong>
+{% endif %}
 <div class="product-grid" id="allProducts">
   {% for product in products %}
   <article class="product-card" id="product-{{ product.pk }}">
