@@ -98,24 +98,29 @@ def products(request):
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk, is_active=True, florist__is_active=True)
-    context = {"product": product,
-               "reviews": product.reviews.select_related("customer", "order"),
-               "review_count": product.total_reviews,
-               "average_rating": product.average_rating,
-               "eligible_reviews": []}
+    context = {
+        "product": product,
+        "reviews": product.reviews.select_related("customer", "order"),
+        "review_count": product.total_reviews,
+        "average_rating": product.average_rating,
+        "eligible_reviews": [],
+        "customer_review": None,
+    }
     if request.user.is_authenticated and request.user.role == "customer":
-        eligible_orders = Order.objects.filter(
+        eligible_orders = list(Order.objects.filter(
             customer=request.user,
             items__product=product,
             items__fulfillment_status="delivered",
-        ).distinct().order_by("-created_at")
-        existing_order_ids = set(Review.objects.filter(
-            customer=request.user, product=product,
-            order__in=eligible_orders,
-        ).values_list("order_id", flat=True))
-        for order in eligible_orders:
-            if order.pk not in existing_order_ids:
-                context["eligible_reviews"].append({"order": order, "form": ReviewForm(prefix=f"order-{order.pk}")})
+        ).distinct().order_by("-created_at"))
+        existing_review = Review.objects.filter(customer=request.user, product=product).first()
+        context["customer_review"] = existing_review
+        if eligible_orders:
+            review_order = eligible_orders[0]
+            context["eligible_reviews"].append({
+                "order": review_order,
+                "form": ReviewForm(instance=existing_review, prefix=f"order-{review_order.pk}"),
+                "existing_review": existing_review,
+            })
     return render(request, "marketplace/product_detail.html", context)
 
 @login_required
@@ -132,43 +137,42 @@ def add_review(request, product_id, order_id):
     ).exists()
     if not delivered:
         raise PermissionDenied("You can review this product after it has been delivered.")
-    if Review.objects.filter(customer=request.user, product=product, order=order).exists():
-        messages.info(request, "You have already reviewed this flower for this order.")
-        return redirect("product_detail", pk=product.pk)
 
-    form = ReviewForm(request.POST, prefix=f"order-{order.pk}")
+    existing_review = Review.objects.filter(customer=request.user, product=product).first()
+    form = ReviewForm(request.POST, instance=existing_review, prefix=f"order-{order.pk}")
     if form.is_valid():
         review = form.save(commit=False)
         review.product = product
         review.customer = request.user
         review.order = order
+        was_edit = existing_review is not None
         try:
-            review.save()
+            with transaction.atomic():
+                review.save()
         except IntegrityError:
-            # The unique constraint also guards simultaneous duplicate submissions.
-            messages.info(request, "You have already reviewed this flower for this order.")
+            # A concurrent first submission may have created this unique pair meanwhile.
+            review = Review.objects.filter(customer=request.user, product=product).first()
+            if review is None:
+                raise
+            review.rating = form.cleaned_data["rating"]
+            review.comment = form.cleaned_data["comment"]
+            review.order = order
+            review.save()
+            was_edit = True
+        if was_edit:
+            messages.success(request, "Your review has been updated.")
         else:
-            messages.success(request, "Thank you for sharing your review.")
+            messages.success(request, "Thank you! Your review has been submitted.")
         return redirect(f"{reverse('product_detail', args=[product.pk])}#reviews")
 
-    context = {"product": product,
-               "reviews": product.reviews.select_related("customer", "order"),
-               "review_count": product.total_reviews,
-               "average_rating": product.average_rating,
-               "eligible_reviews": []}
-    eligible_orders = Order.objects.filter(
-        customer=request.user, items__product=product,
-        items__fulfillment_status="delivered",
-    ).distinct().order_by("-created_at")
-    reviewed_order_ids = set(Review.objects.filter(
-        customer=request.user, product=product, order__in=eligible_orders,
-    ).values_list("order_id", flat=True))
-    for eligible_order in eligible_orders:
-        if eligible_order.pk not in reviewed_order_ids:
-            context["eligible_reviews"].append({
-                "order": eligible_order,
-                "form": form if eligible_order.pk == order.pk else ReviewForm(prefix=f"order-{eligible_order.pk}"),
-            })
+    context = {
+        "product": product,
+        "reviews": product.reviews.select_related("customer", "order"),
+        "review_count": product.total_reviews,
+        "average_rating": product.average_rating,
+        "customer_review": existing_review,
+        "eligible_reviews": [{"order": order, "form": form, "existing_review": existing_review}],
+    }
     return render(request, "marketplace/product_detail.html", context, status=400)
 
 def _get_cart(user):
@@ -657,12 +661,17 @@ def order_detail(request, order_id):
     order = get_object_or_404(
         Order.objects.filter(customer=request.user).prefetch_related("items__florist", "items__product"), pk=order_id
     )
-    reviewed_product_ids = set(Review.objects.filter(
-        customer=request.user, order=order,
-    ).values_list("product_id", flat=True))
+    order_items = list(order.items.all())
+    reviews_by_product = {
+        review.product_id: review for review in Review.objects.filter(
+            customer=request.user, product_id__in=[item.product_id for item in order_items],
+        )
+    }
+    for item in order_items:
+        item.customer_review = reviews_by_product.get(item.product_id)
     return render(request, "marketplace/order_detail.html", {
         "order": order,
-        "reviewed_product_ids": reviewed_product_ids,
+        "order_items": order_items,
         "can_cancel": _customer_can_cancel_order(order),
         "tracking_steps": _order_tracking_steps(order),
     })

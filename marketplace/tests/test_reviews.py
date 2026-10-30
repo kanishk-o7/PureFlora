@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 
@@ -25,61 +26,99 @@ class ReviewTests(TestCase):
         )
         return order
 
-    def test_delivered_buyer_can_submit_review(self):
-        self.client.force_login(self.customer)
-        response = self.client.post(
-            reverse("add_review", args=[self.product.pk, self.order.pk]),
-            {f"order-{self.order.pk}-rating": "5", f"order-{self.order.pk}-comment": "Beautiful and fresh."},
+    def post_review(self, order, rating, comment="Buyer review"):
+        return self.client.post(
+            reverse("add_review", args=[self.product.pk, order.pk]),
+            {f"order-{order.pk}-rating": str(rating), f"order-{order.pk}-comment": comment},
         )
+
+    def test_delivered_buyer_can_submit_one_product_review(self):
+        self.client.force_login(self.customer)
+        response = self.post_review(self.order, 4, "Beautiful and fresh.")
         self.assertRedirects(response, f"{reverse('product_detail', args=[self.product.pk])}#reviews")
-        review = Review.objects.get(product=self.product, customer=self.customer, order=self.order)
-        self.assertEqual(review.rating, 5)
+        review = Review.objects.get(product=self.product, customer=self.customer)
+        self.assertEqual(review.order, self.order)
+        self.assertEqual(review.rating, 4)
         self.assertEqual(review.comment, "Beautiful and fresh.")
+
+    def test_second_delivered_order_updates_instead_of_creating_duplicate(self):
+        self.client.force_login(self.customer)
+        self.post_review(self.order, 4, "First review")
+        second_order = self.make_order(self.customer, self.product, "delivered")
+        response = self.post_review(second_order, 3, "Updated from my second order")
+        self.assertRedirects(response, f"{reverse('product_detail', args=[self.product.pk])}#reviews")
+        self.assertEqual(Review.objects.filter(customer=self.customer, product=self.product).count(), 1)
+        review = Review.objects.get(customer=self.customer, product=self.product)
+        self.assertEqual(review.order, second_order)
+        self.assertEqual(review.rating, 3)
+        self.assertEqual(review.comment, "Updated from my second order")
+
+    def test_database_constraint_blocks_duplicate_customer_product_reviews(self):
+        Review.objects.create(product=self.product, customer=self.customer, order=self.order, rating=4)
+        second_order = self.make_order(self.customer, self.product, "delivered")
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Review.objects.create(product=self.product, customer=self.customer, order=second_order, rating=5)
+        self.assertEqual(Review.objects.filter(customer=self.customer, product=self.product).count(), 1)
+
+    def test_review_can_be_edited_from_second_order_and_product_count_stays_one(self):
+        self.client.force_login(self.customer)
+        self.post_review(self.order, 4, "Original")
+        second_order = self.make_order(self.customer, self.product, "delivered")
+        before = Review.objects.get(customer=self.customer, product=self.product)
+        old_updated_at = before.updated_at
+        response = self.post_review(second_order, 5, "Edited to five stars")
+        self.assertRedirects(response, f"{reverse('product_detail', args=[self.product.pk])}#reviews")
+        before.refresh_from_db()
+        self.assertEqual(before.rating, 5)
+        self.assertEqual(before.comment, "Edited to five stars")
+        self.assertEqual(before.order, second_order)
+        self.assertGreaterEqual(before.updated_at, old_updated_at)
+        self.assertEqual(Review.objects.filter(product=self.product).count(), 1)
+
+    def test_average_rating_recalculates_after_review_edit(self):
+        other_customer = make_customer("another_review_buyer")
+        other_order = self.make_order(other_customer, self.product, "delivered")
+        first_review = Review.objects.create(product=self.product, customer=self.customer, order=self.order, rating=4)
+        Review.objects.create(product=self.product, customer=other_customer, order=other_order, rating=2)
+        self.assertEqual(self.product.average_rating, 3.0)
+        first_review.rating = 5
+        first_review.save()
+        self.assertEqual(self.product.average_rating, 3.5)
+        self.assertEqual(self.product.total_reviews, 2)
 
     def test_unverified_or_undelivered_buyer_cannot_submit_review(self):
         self.client.force_login(self.customer)
         pending_order = self.make_order(self.customer, self.product, "shipped")
-        response = self.client.post(
-            reverse("add_review", args=[self.product.pk, pending_order.pk]),
-            {f"order-{pending_order.pk}-rating": "4", f"order-{pending_order.pk}-comment": ""},
-        )
+        response = self.post_review(pending_order, 4, "")
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Review.objects.filter(order=pending_order).exists())
 
         other_customer = make_customer("not_the_buyer")
         foreign_order = self.make_order(other_customer, self.product, "delivered")
-        response = self.client.post(
-            reverse("add_review", args=[self.product.pk, foreign_order.pk]),
-            {f"order-{foreign_order.pk}-rating": "4", f"order-{foreign_order.pk}-comment": ""},
-        )
+        response = self.post_review(foreign_order, 4, "")
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Review.objects.filter(order=foreign_order).exists())
 
-    def test_average_rating_and_count_update_when_reviews_change(self):
-        second_order = self.make_order(self.customer, self.product, "delivered")
-        first_review = Review.objects.create(
-            product=self.product, customer=self.customer, order=self.order, rating=5,
-        )
-        Review.objects.create(
-            product=self.product, customer=self.customer, order=second_order, rating=3,
-        )
-        self.assertEqual(self.product.average_rating, 4.0)
-        self.assertEqual(self.product.total_reviews, 2)
-
-        first_review.delete()
-        self.assertEqual(self.product.average_rating, 3.0)
-        self.assertEqual(self.product.total_reviews, 1)
-
-    def test_product_and_order_pages_show_review_actions_for_eligible_buyer(self):
+    def test_product_and_order_pages_offer_write_or_edit_review(self):
         self.client.force_login(self.customer)
         product_response = self.client.get(reverse("product_detail", args=[self.product.pk]))
         self.assertEqual(product_response.status_code, 200)
         self.assertContains(product_response, "Share your experience")
         self.assertContains(product_response, "Verified purchase")
+        order_response = self.client.get(reverse("order_detail", args=[self.order.pk]))
+        self.assertContains(order_response, "Write a Review")
+
+        Review.objects.create(product=self.product, customer=self.customer, order=self.order, rating=4, comment="Fresh")
+        product_response = self.client.get(reverse("product_detail", args=[self.product.pk]))
+        self.assertContains(product_response, "Edit your review")
+        self.assertContains(product_response, "Update review")
+        self.assertContains(product_response, 'value="4" selected')
+        self.assertContains(product_response, "Fresh")
 
         order_response = self.client.get(reverse("order_detail", args=[self.order.pk]))
-        self.assertEqual(order_response.status_code, 200)
-        self.assertContains(order_response, "Rate &amp; Review")
+        self.assertContains(order_response, "Reviewed (4 Stars)")
+        self.assertContains(order_response, "Edit Review")
         self.assertContains(order_response, "ORDER JOURNEY")
         self.assertContains(order_response, "Progress updates")
 
@@ -87,15 +126,3 @@ class ReviewTests(TestCase):
         self.client.force_login(self.customer)
         response = self.client.get(reverse("tracking"), {"order_number": self.order.order_number})
         self.assertRedirects(response, reverse("order_history"))
-
-    def test_duplicate_review_is_rejected(self):
-        self.client.force_login(self.customer)
-        Review.objects.create(
-            product=self.product, customer=self.customer, order=self.order, rating=4,
-        )
-        response = self.client.post(
-            reverse("add_review", args=[self.product.pk, self.order.pk]),
-            {f"order-{self.order.pk}-rating": "5", f"order-{self.order.pk}-comment": "Second review."},
-        )
-        self.assertRedirects(response, reverse("product_detail", args=[self.product.pk]))
-        self.assertEqual(Review.objects.filter(product=self.product, customer=self.customer, order=self.order).count(), 1)

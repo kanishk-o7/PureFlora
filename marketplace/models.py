@@ -163,9 +163,10 @@ class Review(models.Model):
     rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("customer", "product", "order")
+        unique_together = ("customer", "product")
         ordering = ["-created_at"]
 
     def __str__(self):
