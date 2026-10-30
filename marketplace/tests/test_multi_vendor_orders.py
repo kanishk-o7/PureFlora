@@ -37,6 +37,20 @@ class MultiVendorOrderTests(TestCase):
         self.item_two.refresh_from_db()
         self.assertEqual(self.item_two.fulfillment_status, "pending")
 
+    def test_htmx_florist_status_update_returns_inline_status_partial(self):
+        self.client.force_login(self.florist_one)
+        response = self.client.post(
+            reverse("florist_order_status", args=[self.item_one.pk]),
+            {"fulfillment_status": "processing"}, HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'id="item-status-{self.item_one.pk}"')
+        self.assertContains(response, "Processing")
+        self.assertContains(response, "Your fulfillment status was updated.")
+        self.assertNotContains(response, "<html")
+        self.item_one.refresh_from_db()
+        self.assertEqual(self.item_one.fulfillment_status, "processing")
+
     def test_cancelled_line_restores_stock_exactly_once(self):
         self.client.force_login(self.florist_one)
         url = reverse("florist_order_status", args=[self.item_one.pk])

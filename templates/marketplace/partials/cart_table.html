@@ -1,0 +1,15 @@
+<div class="cart-title-row"><h2>Your bag <span>({{ item_count }} items)</span></h2><a href="{% url 'products' %}" class="text-link">Continue shopping &#8599;</a></div>
+{% for item in cart_items %}
+<article class="cart-item" id="cart-item-{{ item.pk }}">
+  <img src="{{ item.product.get_image_url }}" alt="{{ item.product.name }}">
+  <div class="cart-item-info"><span class="eyebrow">{{ item.product.category.name }}</span><h3>{{ item.product.name }}</h3><p>&#8377;{{ item.product.price }} / {{ item.product.get_unit_display }}</p>
+    <div class="quantity-control">
+      <form method="post" action="{% url 'update_cart_item' item.pk %}" hx-post="{% url 'update_cart_item' item.pk %}" hx-target="#cart-container" hx-swap="innerHTML" hx-indicator="#cart-loading-spinner">{% csrf_token %}<input type="hidden" name="quantity" value="{{ item.quantity|add:'-1' }}"><button type="submit" aria-label="Decrease {{ item.product.name }} quantity" {% if item.quantity <= 1 %}disabled{% endif %}>&minus;</button></form>
+      <form method="post" action="{% url 'update_cart_item' item.pk %}" hx-post="{% url 'update_cart_item' item.pk %}" hx-target="#cart-container" hx-swap="innerHTML" hx-indicator="#cart-loading-spinner">{% csrf_token %}<input aria-label="Quantity" type="number" name="quantity" min="1" max="{{ item.product.stock }}" value="{{ item.quantity }}"><button type="submit">Update</button></form>
+      <form method="post" action="{% url 'update_cart_item' item.pk %}" hx-post="{% url 'update_cart_item' item.pk %}" hx-target="#cart-container" hx-swap="innerHTML" hx-indicator="#cart-loading-spinner">{% csrf_token %}<input type="hidden" name="quantity" value="{{ item.quantity|add:'1' }}"><button type="submit" aria-label="Increase {{ item.product.name }} quantity" {% if item.quantity >= item.product.stock %}disabled{% endif %}>&plus;</button></form>
+      <form method="post" action="{% url 'remove_cart_item' item.pk %}" hx-post="{% url 'remove_cart_item' item.pk %}" hx-target="#cart-container" hx-swap="innerHTML" hx-indicator="#cart-loading-spinner">{% csrf_token %}<button class="remove-link" type="submit">Remove</button></form>
+    </div>
+  </div>
+  <div class="cart-item-price"><strong>&#8377;{{ item.line_total }}</strong></div>
+</article>
+{% empty %}<div class="empty-cart"><h3>Your bag is waiting to bloom.</h3><a class="button button-dark" href="{% url 'products' %}">Explore flowers</a></div>{% endfor %}

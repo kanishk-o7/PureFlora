@@ -33,6 +33,34 @@ class CartAndCheckoutTests(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.quantity, 2)
 
+    def test_htmx_quantity_update_returns_updated_cart_and_totals(self):
+        cart = Cart.objects.create(customer=self.customer)
+        item = CartItem.objects.create(cart=cart, product=self.product, quantity=1)
+        response = self.client.post(
+            reverse("update_cart_item", args=[item.pk]),
+            {"quantity": "2"}, HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="cart-item-%s"' % item.pk)
+        self.assertContains(response, 'id="cartTotal">&#8377;50.00')
+        self.assertContains(response, 'id="nav-cart-count"')
+        self.assertNotContains(response, "<html")
+        item.refresh_from_db()
+        self.assertEqual(item.quantity, 2)
+
+    def test_htmx_remove_updates_cart_row_summary_and_badge(self):
+        cart = Cart.objects.create(customer=self.customer)
+        item = CartItem.objects.create(cart=cart, product=self.product, quantity=2)
+        response = self.client.post(
+            reverse("remove_cart_item", args=[item.pk]), HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="cart-item-%s"' % item.pk)
+        self.assertContains(response, 'id="nav-cart-count"')
+        self.assertContains(response, 'hx-swap-oob="outerHTML">0</span>')
+        self.assertContains(response, "Your bag is waiting to bloom.")
+        self.assertFalse(CartItem.objects.filter(pk=item.pk).exists())
+
     def test_cod_checkout_creates_order_reduces_stock_and_clears_cart(self):
         cart = Cart.objects.create(customer=self.customer)
         CartItem.objects.create(cart=cart, product=self.product, quantity=2)

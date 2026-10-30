@@ -1,0 +1,16 @@
+<section class="dashboard-card" id="item-status-{{ item.pk }}" style="margin-bottom:18px">
+  <div class="card-heading"><div><span class="eyebrow">ORDER {{ item.order.order_number }}</span><h2>{{ item.product_name }}</h2></div><span class="status-pill status-progress">{{ item.get_fulfillment_status_display }}</span></div>
+  {% if status_feedback %}<p class="inline-message {% if status_error %}cart-error{% endif %}" role="{% if status_error %}alert{% else %}status{% endif %}">{{ status_feedback }}</p>{% endif %}
+  <div class="table-scroll"><table class="data-table"><tbody>
+    <tr><th>Customer</th><td>{{ item.order.delivery_info.full_name }}</td><th>Phone</th><td><a href="tel:{{ item.order.delivery_info.phone }}">{{ item.order.delivery_info.phone }}</a></td></tr>
+    <tr><th>Delivery address</th><td colspan="3">{{ item.order.delivery_info.address|linebreaksbr }}, {{ item.order.delivery_info.city }} {{ item.order.delivery_info.pin_code }}</td></tr>
+    <tr><th>Placed</th><td colspan="3">{{ item.order.created_at|date:"d M Y, g:i A" }}</td></tr>
+    <tr><th>Quantity</th><td>{{ item.quantity }} {{ item.product.get_unit_display|lower }}</td><th>Line total</th><td>&#8377;{{ item.line_total }}</td></tr>
+  </tbody></table></div>
+  {% if item.fulfillment_status == "cancelled" %}<p>This line was cancelled and its stock was restored.</p>
+  {% elif item.fulfillment_status == "delivered" %}<p>This line has been delivered.</p>
+  {% else %}<form method="post" action="{% url 'florist_order_status' item.pk %}" class="stack-form" hx-post="{% url 'florist_order_status' item.pk %}" hx-target="#item-status-{{ item.pk }}" hx-swap="outerHTML" hx-indicator="#status-loading-spinner">
+    {% csrf_token %}<div class="form-field"><label for="status-{{ item.pk }}">Update this line's status</label><select id="status-{{ item.pk }}" name="fulfillment_status"><option value="{{ item.fulfillment_status }}" selected>{{ item.get_fulfillment_status_display }}</option>{% for value,label in item.available_fulfillment_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+    <button class="button button-dark" type="submit">Save fulfillment status</button>
+  </form>{% endif %}
+</section>

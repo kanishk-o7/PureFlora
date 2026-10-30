@@ -1,0 +1,9 @@
+<aside class="order-summary" id="cart-summary" {% if htmx_oob %}hx-swap-oob="outerHTML"{% endif %}>
+  <h3>Order summary</h3><div class="summary-line"><span>Subtotal</span><strong id="cartSubtotal">&#8377;{{ subtotal }}</strong></div>
+  <div class="summary-line"><span>Estimated delivery</span><strong id="cartDelivery">{% if delivery_fee %}&#8377;{{ delivery_fee }}{% else %}Free{% endif %}</strong></div>
+  <div class="summary-line"><span>Bulk order savings</span><strong class="saving" id="cartSavings">&#8377;0</strong></div>
+  <div class="summary-total"><span>Total</span><strong id="cartTotal">&#8377;{{ total }}</strong></div>
+  <p class="summary-note">Cash on Delivery. Pay the confirmed total when your order arrives.</p>
+  {% if cart_items %}<a class="button button-dark button-full" href="{% url 'checkout' %}">Continue to checkout <span>&#8594;</span></a>{% else %}<button class="button button-dark button-full" disabled>Your bag is empty</button>{% endif %}
+  <div class="secure-note">&#10047; Carefully packed, always</div>
+</aside>

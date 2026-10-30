@@ -1,0 +1,4 @@
+{% include 'marketplace/partials/cart_table.html' %}
+{% include 'marketplace/partials/cart_summary.html' with htmx_oob=True %}
+<span id="nav-cart-count" class="cart-count" data-cart-count hx-swap-oob="outerHTML">{{ cart_count }}</span>
+<div id="cart-flash" hx-swap-oob="innerHTML">{% if feedback %}<div class="inline-message {% if is_error %}cart-error{% endif %}" role="status">{{ feedback }}</div>{% endif %}</div>

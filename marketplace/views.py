@@ -221,6 +221,19 @@ def cart_view(request):
         "delivery_fee": Decimal("0.00"),
         "total": total,
         "item_count": count,
+        "cart_count": count,
+    })
+
+def _cart_htmx_response(request, feedback="", is_error=False):
+    cart = _get_cart(request.user)
+    items = list(cart.items.select_related("product", "product__category").all())
+    subtotal = sum((item.line_total for item in items), Decimal("0.00"))
+    count = sum(item.quantity for item in items)
+    return render(request, "marketplace/partials/cart_htmx_response.html", {
+        "cart_items": items, "subtotal": subtotal,
+        "delivery_fee": Decimal("0.00"), "total": subtotal,
+        "item_count": count, "cart_count": count,
+        "feedback": feedback, "is_error": is_error,
     })
 
 @require_POST
@@ -259,15 +272,22 @@ def add_to_cart(request, product_id):
 @role_required("customer")
 def update_cart_item(request, item_id):
     item = get_object_or_404(CartItem, pk=item_id, cart__customer=request.user)
+    is_htmx = request.headers.get("HX-Request", "").lower() == "true"
     try: quantity = int(request.POST.get("quantity", "1"))
-    except ValueError: quantity = 0
+    except (TypeError, ValueError): quantity = 0
     if quantity < 1:
-        messages.error(request, "Quantity must be at least one.")
+        error_message = "Quantity must be at least one."
     elif quantity > item.product.stock:
-        messages.error(request, "Insufficient stock for that quantity.")
+        error_message = "Insufficient stock for that quantity."
     else:
         item.quantity = quantity
         item.save(update_fields=["quantity"])
+        error_message = ""
+    if is_htmx:
+        return _cart_htmx_response(request, feedback=error_message or "Cart quantity updated.", is_error=bool(error_message))
+    if error_message:
+        messages.error(request, error_message)
+    else:
         messages.success(request, "Cart quantity updated.")
     return redirect("cart")
 
@@ -275,6 +295,8 @@ def update_cart_item(request, item_id):
 @role_required("customer")
 def remove_cart_item(request, item_id):
     get_object_or_404(CartItem, pk=item_id, cart__customer=request.user).delete()
+    if request.headers.get("HX-Request", "").lower() == "true":
+        return _cart_htmx_response(request, feedback="Flower removed from your bag.")
     return redirect("cart")
 
 @role_required("customer")
@@ -540,28 +562,43 @@ def florist_orders(request):
         "page_obj": page_obj,
     })
 
+def _florist_status_partial_response(request, item, feedback="", is_error=False):
+    next_statuses = {
+        "pending": ("processing", "cancelled"),
+        "processing": ("shipped", "cancelled"),
+        "shipped": ("delivered",),
+    }
+    choices = dict(OrderItem.FULFILLMENT_CHOICES)
+    item.available_fulfillment_choices = [
+        (status, choices[status]) for status in next_statuses.get(item.fulfillment_status, ())
+    ]
+    return render(request, "marketplace/partials/florist_order_status.html", {
+        "item": item, "status_feedback": feedback, "status_error": is_error,
+    })
+
 @require_POST
 @role_required("florist")
 def florist_order_status(request, item_id):
+    is_htmx = request.headers.get("HX-Request", "").lower() == "true"
     # Lock the vendor line and product together so cancellation can only restore stock once.
     with transaction.atomic():
         item = get_object_or_404(
-            OrderItem.objects.select_for_update().select_related("order").filter(florist=request.user),
+            OrderItem.objects.select_for_update().select_related(
+                "order", "order__delivery_info", "order__customer", "product", "product__category",
+            ).filter(florist=request.user),
             pk=item_id,
         )
         previous_status = item.fulfillment_status
         form = OrderItemStatusForm(request.POST, instance=item)
         if not form.is_valid():
-            messages.error(request, "Choose a valid fulfillment status.")
+            item.refresh_from_db()
+            error_message = "Choose a valid fulfillment status."
+            if is_htmx:
+                return _florist_status_partial_response(request, item, error_message, is_error=True)
+            messages.error(request, error_message)
             return redirect("florist_orders")
 
         new_status = form.cleaned_data["fulfillment_status"]
-        # ModelForm validation copies the submitted status onto its instance, so use
-        # the database value captured before validation for transition checks.
-        if previous_status == new_status:
-            messages.info(request, "This line item is already marked with that status.")
-            return redirect("florist_orders")
-
         allowed_transitions = {
             "pending": {"processing", "cancelled"},
             "processing": {"shipped", "cancelled"},
@@ -569,8 +606,20 @@ def florist_order_status(request, item_id):
             "delivered": set(),
             "cancelled": set(),
         }
+        if previous_status == new_status:
+            feedback = "This line item is already marked with that status."
+            if is_htmx:
+                item.refresh_from_db()
+                return _florist_status_partial_response(request, item, feedback)
+            messages.info(request, feedback)
+            return redirect("florist_orders")
+
         if new_status not in allowed_transitions.get(previous_status, set()):
-            messages.error(request, "Update statuses in order: preparing, shipped, then delivered. Only unshipped items can be cancelled.")
+            error_message = "Update statuses in order: preparing, shipped, then delivered. Only unshipped items can be cancelled."
+            if is_htmx:
+                item.refresh_from_db()
+                return _florist_status_partial_response(request, item, error_message, is_error=True)
+            messages.error(request, error_message)
             return redirect("florist_orders")
 
         if new_status == "cancelled" and not item.stock_restored:
@@ -586,6 +635,9 @@ def florist_order_status(request, item_id):
         item.fulfillment_status = new_status
         item.save(update_fields=["fulfillment_status", "stock_restored"])
         item.order.sync_fulfillment()
+
+    if is_htmx:
+        return _florist_status_partial_response(request, item, "Your fulfillment status was updated.")
     messages.success(request, "Your fulfillment status was updated.")
     return redirect("florist_orders")
 

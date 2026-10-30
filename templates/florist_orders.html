@@ -6,36 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Florist orders — Pure Flora</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
   <div class="announcement">PURE FLORA GROWER STUDIO</div>
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a>
     <a href="{% url 'florist_dashboard' %}" class="text-link">Dashboard</a>
   </header>
-  <main class="inner-page dashboard-page">
+  <main class="inner-page dashboard-page"><div id="status-loading-spinner" class="htmx-indicator" role="status" aria-live="polite">Updating fulfillment status...</div>
     <section class="dashboard-welcome"><div><div class="eyebrow">YOUR FLOWER FULFILLMENT</div><h1>Orders <em>to prepare.</em></h1><p>Each card shows only a flower line sold by your shop.</p></div></section>
-    {% for item in fulfillment_items %}
-      <section class="dashboard-card" style="margin-bottom:18px">
-        <div class="card-heading"><div><span class="eyebrow">ORDER {{ item.order.order_number }}</span><h2>{{ item.product_name }}</h2></div><span class="status-pill status-progress">{{ item.get_fulfillment_status_display }}</span></div>
-        <div class="table-scroll"><table class="data-table"><tbody>
-          <tr><th>Customer</th><td>{{ item.order.delivery_info.full_name }}</td><th>Phone</th><td><a href="tel:{{ item.order.delivery_info.phone }}">{{ item.order.delivery_info.phone }}</a></td></tr>
-          <tr><th>Delivery address</th><td colspan="3">{{ item.order.delivery_info.address|linebreaksbr }}, {{ item.order.delivery_info.city }} {{ item.order.delivery_info.pin_code }}</td></tr>
-          <tr><th>Placed</th><td colspan="3">{{ item.order.created_at|date:"d M Y, g:i A" }}</td></tr>
-          <tr><th>Quantity</th><td>{{ item.quantity }} {{ item.product.get_unit_display|lower }}</td><th>Line total</th><td>₹{{ item.line_total }}</td></tr>
-        </tbody></table></div>
-        {% if item.fulfillment_status == "cancelled" %}
-          <p>This line was cancelled and its stock was restored.</p>
-        {% elif item.fulfillment_status == "delivered" %}
-          <p>This line has been delivered.</p>
-        {% else %}
-          <form method="post" action="{% url 'florist_order_status' item.pk %}" class="stack-form">
-            {% csrf_token %}<div class="form-field"><label for="status-{{ item.pk }}">Update this line's status</label><select id="status-{{ item.pk }}" name="fulfillment_status"><option value="{{ item.fulfillment_status }}" selected>{{ item.get_fulfillment_status_display }}</option>{% for value,label in item.available_fulfillment_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
-            <button class="button button-dark">Save fulfillment status</button>
-          </form>
-        {% endif %}
-      </section>
+    {% for item in fulfillment_items %}{% include 'marketplace/partials/florist_order_status.html' %}
     {% empty %}
       <section class="dashboard-card"><p>No orders contain your listings yet.</p></section>
     {% endfor %}
