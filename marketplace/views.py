@@ -79,7 +79,7 @@ def products(request):
         added_product_id = int(request.GET.get("added", ""))
     except (TypeError, ValueError):
         added_product_id = None
-    return render(request, "products.html", {
+    context = {
         "products": page_obj.object_list,
         "page_obj": page_obj,
         "result_count": result_count,
@@ -92,7 +92,9 @@ def products(request):
         "sort": sort,
         "cart_count": cart_count,
         "added_product_id": added_product_id,
-    })
+    }
+    template = "marketplace/partials/product_grid.html" if request.headers.get("HX-Request", "").lower() == "true" else "products.html"
+    return render(request, template, context)
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk, is_active=True, florist__is_active=True)

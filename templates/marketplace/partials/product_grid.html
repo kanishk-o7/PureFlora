@@ -1,0 +1,26 @@
+<p id="resultCount" hx-swap-oob="true">Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ result_count }} flowers</p>
+<strong id="priceRangeValue" hx-swap-oob="true">&#8377;{{ max_price }}</strong>
+<div class="product-grid" id="allProducts">
+  {% for product in products %}
+  <article class="product-card" id="product-{{ product.pk }}">
+    <div class="product-image-wrap"><a class="product-image-link" href="{% url 'product_detail' product.pk %}"><img class="product-image" src="{{ product.get_image_url }}" alt="{{ product.name }}" loading="lazy"></a></div>
+    <div class="product-info">
+      <div class="product-meta"><span>{{ product.category.name }}</span><span class="{% if product.stock %}stock-in{% else %}stock-out{% endif %}">{% if product.stock %}&#9679; In stock{% else %}&#9679; Sold out{% endif %}</span></div>
+      {% if added_product_id == product.pk %}<p class="stock-in" role="status">Added to cart</p>{% endif %}
+      <h3><a class="product-title-link" href="{% url 'product_detail' product.pk %}">{{ product.name }}</a></h3>
+      <p class="product-grower">Grown by {{ product.florist.florist_profile.shop_name|default:product.florist.username }}</p>
+      <div class="product-bottom"><div><strong>&#8377;{{ product.price }}</strong><small>/ {{ product.get_unit_display }}</small></div>
+        <form method="post" action="{% url 'wishlist_toggle' product.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'products' %}"><button class="wishlist-button" aria-label="Save to favourites">&#9825;</button></form>
+        <form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="add-button" {% if not product.stock %}disabled{% endif %} aria-label="Add {{ product.name }} to bag">&#43;</button></form>
+      </div>
+    </div>
+  </article>
+  {% empty %}
+  <div class="empty-state"><span>&#10047;</span><h3>No flowers found matching your criteria</h3><p>Try changing your search or filters.</p></div>
+  {% endfor %}
+</div>
+{% if page_obj.has_other_pages %}<div class="section-heading" aria-label="Product pages">
+  {% if page_obj.has_previous %}<a class="text-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" hx-get="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" hx-target="#product-grid-container" hx-swap="innerHTML" hx-push-url="true">Previous</a>{% endif %}
+  <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a class="text-link" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}" hx-get="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}" hx-target="#product-grid-container" hx-swap="innerHTML" hx-push-url="true">Next</a>{% endif %}
+</div>{% endif %}

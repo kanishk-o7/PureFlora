@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+import re
 from marketplace.tests.helpers import make_florist, make_product
 
 
@@ -31,3 +32,19 @@ class CatalogFilterTests(TestCase):
         response = self.client.get(reverse("products"), {"max_price": "15", "in_stock": "1", "sort": "price-desc"})
         self.assertEqual(response.context["result_count"], 6)
         self.assertEqual(response.context["sort"], "price-desc")
+
+    def test_htmx_catalog_request_returns_only_product_grid_partial(self):
+        response = self.client.get(reverse("products"), {"q": "Rare"}, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "marketplace/partials/product_grid.html")
+        self.assertContains(response, "Rare Lily")
+        self.assertNotContains(response, "<html")
+        self.assertNotContains(response, "Shop flowers</a>")
+
+    def test_full_catalog_uses_htmx_base_with_csrf_header(self):
+        response = self.client.get(reverse("products"))
+        self.assertContains(response, "https://unpkg.com/htmx.org@1.9.12")
+        rendered = response.content.decode()
+        token_header = re.search(r'hx-headers=\'\{"X-CSRFToken": "([^\"]+)"\}\'', rendered)
+        self.assertIsNotNone(token_header)
+        self.assertTrue(token_header.group(1))

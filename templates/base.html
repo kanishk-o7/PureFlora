@@ -1,0 +1,18 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Pure Flora{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYwy44uwONn6K51eQo9ymDr550+UmucWW7pnPXBgMPEDAZ502DwgL5NTcxG" crossorigin="anonymous"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  {% block content %}{% endblock %}
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
