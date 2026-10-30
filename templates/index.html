@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pure Flora — thoughtful flowers, direct from growers to your business.">
+  <title>Pure Flora — Wholesale Flower Market</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+  <div class="announcement">FRESH FROM THE FARM · WHOLESALE MADE BEAUTIFUL <span>✳</span> FREE DELIVERY ON SELECT BULK ORDERS</div>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}" aria-label="Pure Flora home"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <a class="active" href="{% url 'home' %}">Home</a><a href="{% url 'products' %}">Shop flowers</a><a href="{% url 'florist_dashboard' %}">For growers</a><a href="{% url 'tracking' %}">Track order</a>
+    {% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}</nav>
+    <div class="header-actions"><button class="icon-button" id="headerSearch" aria-label="Search">⌕</button><a class="icon-button" href="{% url 'login' %}" aria-label="Account">♙</a><a class="cart-link" href="{% url 'cart' %}">Bag <span class="cart-count" data-cart-count>0</span></a></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-line"></span> THE FLOWER MARKET, REIMAGINED</div>
+        <h1>Good things<br>grow <em>together.</em></h1>
+        <p class="hero-description">A more thoughtful way to source flowers. Meet trusted growers, discover seasonal blooms, and bring a little more beauty to every business.</p>
+        <div class="hero-buttons"><a class="button button-dark" href="{% url 'products' %}">Explore the collection <span>↗</span></a><a class="text-link" href="#our-story">Our story <span>↓</span></a></div>
+        <div class="hero-proof"><div class="avatar-stack"><span>🌷</span><span>🌼</span><span>🌹</span></div><div><strong>Growing together</strong><small>Connecting florists & growers</small></div><span class="proof-divider"></span><div><strong>Fresh by design</strong><small>Seasonal, thoughtful sourcing</small></div></div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-image" role="img" aria-label="Soft pink flower bouquet"></div>
+        <div class="image-note"><span class="note-flower">✿</span><div><strong>In bloom, in season</strong><small>Beauty that arrives fresh.</small></div></div>
+        <div class="vertical-label">A LITTLE MORE NATURE, EVERY DAY</div>
+        <div class="hero-stamp">GROWN<br>WITH <em>LOVE</em><span>✳</span></div>
+      </div>
+    </section>
+
+    <section class="trust-strip">
+      <div><span>✳</span> DIRECT FROM GROWERS</div><div><span>✳</span> SEASONAL SELECTION</div><div><span>✳</span> WHOLESALE PRICING</div><div><span>✳</span> CAREFULLY DELIVERED</div>
+    </section>
+
+    <section class="section story-section" id="our-story">
+      <div class="section-kicker">A BETTER WAY TO BLOOM <span>01 / OUR STORY</span></div>
+      <div class="story-grid">
+        <div class="story-image story-image-one" role="img" aria-label="Flower farmer tending a garden"></div>
+        <div class="story-copy"><span class="flower-doodle">✳</span><h2>Flowers have a<br>journey. <em>We make it<br>more beautiful.</em></h2><p>Behind every bunch is a grower, a season, and a little bit of magic. Pure Flora brings the people who grow flowers closer to the people who share them — with simpler sourcing and fresher possibilities.</p><a class="text-link" href="{% url 'florist_dashboard' %}">Meet the grower community <span>↗</span></a></div>
+        <div class="story-image story-image-two" role="img" aria-label="Freshly harvested flowers"></div>
+      </div>
+    </section>
+
+    <section class="section category-section">
+      <div class="section-heading"><div><div class="section-kicker">FIND YOUR KIND OF BEAUTY <span>02 / THE COLLECTION</span></div><h2>Made for every <em>moment.</em></h2></div><a class="text-link" href="{% url 'products' %}">View all flowers <span>↗</span></a></div>
+      <div class="category-grid">
+        <a class="category-card category-roses" href="products.html?category=Roses"><div><span>01</span><h3>Classic roses</h3><p>For moments worth keeping</p></div><span class="category-arrow">↗</span></a>
+        <a class="category-card category-seasonal" href="products.html?category=Seasonal"><div><span>02</span><h3>Seasonal blooms</h3><p>Nature's current favourites</p></div><span class="category-arrow">↗</span></a>
+        <a class="category-card category-marigolds" href="products.html?category=Marigolds"><div><span>03</span><h3>Golden marigolds</h3><p>Joy in every bundle</p></div><span class="category-arrow">↗</span></a>
+      </div>
+    </section>
+
+    <section class="featured-band">
+      <div class="featured-photo" role="img" aria-label="Fresh cut flowers"></div><div class="featured-copy"><div class="eyebrow">A NOTE FROM THE GARDEN</div><h2>Less searching.<br><em>More flourishing.</em></h2><p>Find the right flowers, compare growers, and build your order in one calm, considered place.</p><a class="button button-light" href="{% url 'products' %}">Find your next bunch <span>↗</span></a></div>
+    </section>
+
+    <section class="section products-section">
+      <div class="section-heading"><div><div class="section-kicker">A FEW FRESH FAVOURITES <span>03 / MOST LOVED</span></div><h2>In season, <em>right now.</em></h2></div><a class="text-link" href="{% url 'products' %}">Shop the collection <span>↗</span></a></div>
+      <div class="product-grid" id="featuredProducts">{% for product in featured_products %}<article class="product-card"><div class="product-image-wrap"><a class="product-image-link" href="{% url 'product_detail' product.pk %}"><img class="product-image" src="{{ product.get_image_url }}" alt="{{ product.name }}" loading="lazy"></a></div><div class="product-info"><div class="product-meta"><span>{{ product.category.name }}</span><span class="stock-in">&#9679; In stock</span></div><h3><a class="product-title-link" href="{% url 'product_detail' product.pk %}">{{ product.name }}</a></h3><p class="product-grower">Grown by {{ product.florist.florist_profile.shop_name|default:product.florist.username }}</p><div class="product-bottom"><strong>&#8377;{{ product.price }}</strong><small>/ {{ product.get_unit_display }}</small><form method="post" action="{% url 'wishlist_toggle' product.pk %}">{% csrf_token %}<button class="wishlist-button" aria-label="Save to favourites">&#9825;</button></form><form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}<button class="add-button">&#43;</button></form></div></div></article>{% empty %}<p>Our growers are preparing their first listings.</p>{% endfor %}</div>
+    </section>
+
+    <section class="how-section section">
+      <div class="section-kicker">SIMPLE AS A PETAL <span>04 / HOW IT WORKS</span></div><h2>From grower to <em>good things.</em></h2>
+      <div class="steps-grid"><article><span class="step-number">01</span><span class="step-icon">⌕</span><h3>Discover</h3><p>Browse seasonal flowers from growers and find the right fit for your business.</p></article><article><span class="step-number">02</span><span class="step-icon">✿</span><h3>Build your order</h3><p>Choose your stems, quantities, and favourites. Your basket stays right here.</p></article><article><span class="step-number">03</span><span class="step-icon">♡</span><h3>Grow together</h3><p>Keep track of your order and support the people who bring flowers to life.</p></article></div>
+    </section>
+
+    <section class="newsletter-section"><div class="newsletter-flower">✿</div><div><div class="eyebrow">LET GOOD THINGS GROW</div><h2>A little bloom in your inbox.</h2><p>Seasonal inspiration, grower stories, and fresh finds.</p></div><form id="newsletterForm" class="newsletter-form"><label class="sr-only" for="newsletterEmail">Email address</label><input id="newsletterEmail" type="email" placeholder="Your email address" required><button class="button button-dark" type="submit">Join us <span>↗</span></button><small id="newsletterMessage"></small></form></section>
+  </main>
+
+  <footer class="site-footer"><div class="footer-top"><a class="brand brand-footer" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a><p>Making the flower journey<br>a little more beautiful.</p><div class="footer-links"><a href="{% url 'products' %}">Shop</a><a href="{% url 'florist_dashboard' %}">Grower portal</a><a href="{% url 'tracking' %}">Order tracking</a><a href="{% url 'wishlist' %}">Favourites</a><a href="{% url 'analytics' %}">Market insights</a><a href="{% url 'wishlist' %}">Favourites</a><a href="{% url 'analytics' %}">Market insights</a><a href="{% url 'login' %}">Sign in</a></div></div><div class="footer-bottom"><span>© 2026 Pure Flora</span><span>Made with care, petal by petal <b>✿</b></span></div></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  
+<script src="{% static 'js/cart-add.js' %}"></script></body>
+</html>

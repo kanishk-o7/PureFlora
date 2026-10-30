@@ -1,77 +1,48 @@
-# Pure Flora — Wholesale Flower Marketplace
+# Pure Flora — Django marketplace
 
-A premium, responsive frontend semester project made with **HTML5, CSS3 and vanilla JavaScript**. No frameworks, build tools, backend or paid APIs.
+The original HTML/CSS frontend remains under its original names and styling. Django renders the existing home, product listing, cart, account, and florist dashboard pages; workflow pages for product details, COD checkout, order success, florist orders, and marketplace administration use the same styles.
 
-## Pages
-- `index.html` — editorial homepage and brand story
-- `products.html` — flower catalog, search, category/price/stock filters, sorting, wishlist
-- `cart.html` — quantity controls, subtotal, delivery estimate, bulk savings and demo checkout
-- `auth.html` — sign-in and registration UI with browser-local demo profile
-- `dashboard.html` — grower dashboard and add-listing demo
-- `tracking.html` — order tracking timeline (sample order `PF-2048`)
-- `wishlist.html` — saved flowers
-- `analytics.html` — sample sales chart and category insights
+## Run locally
 
-## Run in VS Code
-1. Extract `pure_flora.zip` to a folder.
-2. Open VS Code → **File → Open Folder** → select `pure_flora`.
-3. Install the **Live Server** extension (Ritwick Dey) if it is not already installed.
-4. Right-click `index.html` → **Open with Live Server**.
-5. Browse the pages using the navigation links.
+From this directory, activate the project virtual environment and run:
 
-You can also open `index.html` directly in a browser, but Live Server is recommended.
-
-## Project structure
-```text
-pure_flora/
-├── index.html
-├── products.html
-├── cart.html
-├── auth.html
-├── dashboard.html
-├── tracking.html
-├── wishlist.html
-├── analytics.html
-├── css/
-│   └── style.css
-├── js/
-│   ├── data.js
-│   ├── app.js
-│   ├── home.js
-│   ├── products.js
-│   ├── cart.js
-│   ├── auth.js
-│   ├── dashboard.js
-│   ├── tracking.js
-│   └── wishlist.js
-└── assets/
+```powershell
+python -m pip install -r requirements.txt
+python manage.py makemigrations marketplace
+python manage.py migrate
+python manage.py seed_flowers
+python manage.py createsuperuser
+python manage.py runserver
 ```
 
-## Frontend demo features
-- Cart, wishlist, demo profile, custom grower listings and demo order state use `localStorage`.
-- Catalog search, filters and sorting run in JavaScript.
-- Product imagery uses remote Unsplash image URLs and Google Fonts need an internet connection. Replace them with local images in `js/data.js` for offline use.
-- Demo checkout creates a local order and shows a tracking ID. No payment is processed.
-- Authentication is a UI demonstration, not secure authentication. Never use real passwords or personal data.
-- Dashboard and analytics numbers are illustrative.
+The florist product form accepts either an uploaded image or a remote image URL. Uploaded images are served from `/media/` during local development; remote image URLs from the original seed catalog remain as fallback. Product listings support search, category, maximum price, stock, sorting, and pagination.
 
-## Main colors
-- Blush: `#FCC7D5`
-- Rose: `#EB59A1`
-- Cream: `#FFF9F6`
-- Deep botanical green: `#315B45`
-- Ink: `#282326`
+Open `http://127.0.0.1:8000/`. The Django admin is at `/django-admin/`, and the marketplace admin overview is at `/market-admin/` for a superuser.
 
-## Presentation tip
-Explain the product goal, buyer/grower roles, responsive design, data model in `js/data.js`, browser storage, and the limitation that real user accounts, payments, inventory synchronization and delivery updates require a backend.
+The `seed_flowers` command imports the twelve flower listings from the original frontend demo and can be run again safely. Then register customer and florist accounts through `/accounts/register/`. Florists can create additional listings from the florist dashboard. Customers must sign in to add items and place orders. Checkout uses Cash on Delivery only.
 
+## Main app files
 
-## Updated redesign notes
-- Typography enlarged across pages, with responsive sizes for desktop and mobile.
-- Header actions show labels for Search, Favorites, Account and Cart (labels compact on mobile).
-- Flower cards open a product-details popup with description, grower, stock, price, quantity, cart and favourites actions.
-- Grower listings are stored in this browser's localStorage and appear in Shop Flowers on this device.
-- Registration/sign-in uses Buyer or Grower roles and routes growers to the grower dashboard.
-- Visible “Semester project demo” footer wording removed.
+- `marketplace/models.py` — users, florist profiles, categories, products, carts, orders, and delivery records
+- `marketplace/forms.py` — registration, login, delivery, product, and order status forms
+- `marketplace/views.py` / `marketplace/urls.py` — server-rendered workflows and role enforcement
+- `marketplace/admin.py` — staff management for marketplace data
+- `templates/` — Django templates copied and adapted from the supplied frontend plus the missing workflow pages
+- `static/css/style.css` — original stylesheet copied unchanged
 
-This remains a front-end-only demo. Accounts and listings are stored locally in the browser and are not secure or shared across devices. Product images require an internet connection.
+## Suggested local test accounts
+
+Register one customer and one florist through the site. Create a superuser with `createsuperuser`; the custom user model assigns the admin role to superusers. Use distinct local-only passwords, then add categories and florist products through the Django admin or florist dashboard.
+
+## Manual testing checklist
+
+1. Add categories in Django admin and register a florist and a customer.
+2. Sign in as florist, add a product, edit it, verify another florist cannot edit it, and review its listing.
+3. Sign in as customer, browse products, add a product, update quantity within stock, remove it, and add it again.
+4. Attempt checkout while signed out; sign in as customer and submit delivery details.
+5. Place a COD order, verify the order number and success page, confirm inventory decreased and the cart cleared.
+6. Try to exceed stock in the cart or order stale inventory and confirm the order is rejected with a message.
+7. Sign in as florist, view orders containing their products, and update order status.
+8. Sign in as superuser, review marketplace counts and orders at `/market-admin/`, and manage products/orders in `/django-admin/`.
+
+No Docker, Celery, external payment provider, REST API, or CSS framework is used.
