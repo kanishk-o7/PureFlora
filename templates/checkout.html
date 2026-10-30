@@ -1,1 +1,39 @@
-{% load static %}<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Checkout — Pure Flora</title><link rel="stylesheet" href="{% static 'css/style.css' %}"></head><body><div class="announcement">FRESH FROM THE FARM · CASH ON DELIVERY</div><header class="site-header"><a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a><nav class="main-nav"><a href="{% url 'products' %}">Shop flowers</a><a href="{% url 'cart' %}">Your bag</a>{% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}</nav></header><main class="inner-page"><section class="page-hero compact-hero"><div class="eyebrow">ALMOST IN BLOOM</div><h1>Delivery <em>details.</em></h1><p>Payment is Cash on Delivery. Pay when your order arrives.</p></section><section class="section cart-layout"><div class="dashboard-card"><h2>Where should we deliver?</h2><form method="post" class="stack-form">{% csrf_token %}{% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endfor %}<input type="hidden" name="payment_method" value="COD"><button class="button button-dark">Place COD order ↗</button></form></div><aside class="order-summary"><h3>Your order</h3>{% for item in cart_items %}<div class="summary-line"><span>{{ item.quantity }} × {{ item.product.name }}</span><strong>₹{{ item.line_total }}</strong></div>{% endfor %}<div class="summary-total"><span>Total</span><strong>₹{{ total }}</strong></div><p class="summary-note">Payment method: Cash on Delivery (COD).</p></aside></section></main></body></html>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout — Pure Flora</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+  <div class="announcement">PURE FLORA CHECKOUT · CASH ON DELIVERY</div>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a>
+    <nav class="main-nav"><a href="{% url 'products' %}">Shop flowers</a><a href="{% url 'cart' %}">Your bag</a>{% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}</nav>
+  </header>
+  <main class="inner-page">
+    <section class="page-hero compact-hero"><div class="eyebrow">SECURE ORDER REVIEW</div><h1>Delivery <em>details.</em></h1><p>Confirm where to send your flowers. You’ll pay cash when they arrive.</p></section>
+    <section class="section cart-layout">
+      <div class="dashboard-card">
+        <h2>Delivery address</h2>
+        <form method="post" class="stack-form">
+          {% csrf_token %}
+          {% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endfor %}
+          <input type="hidden" name="payment_method" value="COD">
+          <button class="button button-dark" type="submit">Place COD order <span>&#8594;</span></button>
+        </form>
+      </div>
+      <aside class="order-summary">
+        <h3>Order summary</h3>
+        {% for item in cart_items %}<div class="summary-line"><span>{{ item.quantity }} × {{ item.product.name }}</span><strong>₹{{ item.line_total }}</strong></div>{% endfor %}
+        <div class="summary-line"><span>Delivery</span><strong>Free</strong></div>
+        <div class="summary-total"><span>Pay on delivery</span><strong>₹{{ total }}</strong></div>
+        <p class="summary-note">Your order is saved to your account. Each florist will update the fulfillment status as your flowers are prepared and delivered.</p>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

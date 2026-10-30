@@ -36,6 +36,10 @@ class CartAndCheckoutTests(TestCase):
     def test_cod_checkout_creates_order_reduces_stock_and_clears_cart(self):
         cart = Cart.objects.create(customer=self.customer)
         CartItem.objects.create(cart=cart, product=self.product, quantity=2)
+        cart_page = self.client.get(reverse("cart"))
+        self.assertContains(cart_page, 'href="/checkout/"')
+        self.assertContains(cart_page, "Continue to checkout")
+        self.assertIn(b"&#8377;50.00", cart_page.content)
         response = self.client.post(reverse("checkout"), {
             "full_name": "Fern Buyer", "phone": "9876543210", "address": "1 Bloom Street",
             "city": "Pune", "pin_code": "411001",
@@ -49,6 +53,13 @@ class CartAndCheckoutTests(TestCase):
         self.assertEqual(order.payment_method, "COD")
         self.assertTrue(DeliveryInfo.objects.filter(order=order, full_name="Fern Buyer").exists())
         self.assertEqual(OrderItem.objects.filter(order=order).get().quantity, 2)
+        confirmation = self.client.get(response.url)
+        self.assertContains(confirmation, "Order confirmed")
+        self.assertContains(confirmation, order.order_number)
+        self.assertContains(confirmation, "Track this order")
+        tracking_page = self.client.get(reverse("order_detail", args=[order.pk]))
+        self.assertContains(tracking_page, "waiting for the florist")
+        self.assertContains(tracking_page, "1 Bloom Street")
 
     def test_checkout_rechecks_stock_and_leaves_cart_when_stock_is_insufficient(self):
         cart = Cart.objects.create(customer=self.customer)

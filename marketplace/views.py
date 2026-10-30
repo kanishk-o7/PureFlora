@@ -180,7 +180,13 @@ def cart_view(request):
         items = _get_cart(request.user).items.select_related("product", "product__category").all()
         total = sum((item.line_total for item in items), Decimal("0.00"))
         count = sum(item.quantity for item in items)
-    return render(request, "cart.html", {"cart_items": items, "subtotal": total, "item_count": count})
+    return render(request, "cart.html", {
+        "cart_items": items,
+        "subtotal": total,
+        "delivery_fee": Decimal("0.00"),
+        "total": total,
+        "item_count": count,
+    })
 
 @require_POST
 @role_required("customer")

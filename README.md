@@ -1,6 +1,6 @@
 # Pure Flora — Django marketplace
 
-The original HTML/CSS frontend remains under its original names and styling. Django renders the existing home, product listing, cart, account, and florist dashboard pages; workflow pages for product details, COD checkout, order success, florist orders, and marketplace administration use the same styles.
+The original HTML/CSS frontend remains under its original names and styling. Django renders the existing home, product listing, cart, account, and florist dashboard pages; workflow pages for product details, COD checkout, order success, florist orders, and marketplace administration use the same styles. The standalone root-level `.html` prototype uses browser-local demo data; use the Django server routes for database-backed orders.
 
 ## Run locally
 
@@ -19,7 +19,7 @@ The florist product form accepts either an uploaded image or a remote image URL.
 
 Open `http://127.0.0.1:8000/`. The Django admin is at `/django-admin/`, and the marketplace admin overview is at `/market-admin/` for a superuser.
 
-The `seed_flowers` command imports the twelve flower listings from the original frontend demo and can be run again safely. Then register customer and florist accounts through `/accounts/register/`. Florists can create additional listings from the florist dashboard. Customers must sign in to add items and place orders. Checkout uses Cash on Delivery only.
+The `seed_flowers` command imports the twelve flower listings from the original frontend demo and can be run again safely. Then register customer and florist accounts through `/accounts/register/`. Florists can create additional listings from the florist dashboard. Customers must sign in to add items and place orders. Database-backed checkout creates a persistent order, reserves stock, records the delivery address, and lets florists update fulfillment status. Payment is Cash on Delivery; no online payment provider is configured.
 
 ## Main app files
 
