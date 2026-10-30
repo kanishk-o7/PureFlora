@@ -133,7 +133,28 @@ class DeliveryInfo(models.Model):
     address = models.TextField()
     city = models.CharField(max_length=100)
     pin_code = models.CharField(max_length=12)
+    state = models.CharField(max_length=100, blank=True, default="")
     def __str__(self): return f"Delivery for {self.order.order_number}"
+
+class CustomerAddress(models.Model):
+    customer = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="saved_addresses")
+    recipient_name = models.CharField(max_length=160)
+    phone_number = models.CharField(max_length=20)
+    street_address = models.TextField()
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    pincode = models.CharField(max_length=12)
+    landmark = models.CharField(max_length=180, blank=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            CustomerAddress.objects.filter(customer_id=self.customer_id).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.recipient_name} — {self.city}"
 
 class Review(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")

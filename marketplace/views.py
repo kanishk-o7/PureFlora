@@ -16,8 +16,8 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from .forms import RegistrationForm, LoginForm, DeliveryForm, ProductForm, OrderItemStatusForm, FloristProfileForm, ReviewForm
-from .models import CustomUser, Category, Product, Cart, CartItem, Order, OrderItem, DeliveryInfo, FloristProfile, Review
+from .forms import RegistrationForm, LoginForm, DeliveryForm, ProductForm, OrderItemStatusForm, FloristProfileForm, ReviewForm, CustomerAddressForm
+from .models import CustomUser, Category, Product, Cart, CartItem, Order, OrderItem, DeliveryInfo, FloristProfile, Review, CustomerAddress
 
 def access_denied(request):
     """Render the themed forbidden page for authenticated users without access."""
@@ -282,8 +282,24 @@ def checkout(request):
     if not items:
         messages.info(request, "Your cart is empty.")
         return redirect("products")
+    saved_addresses = list(request.user.saved_addresses.order_by("-is_default", "-created_at"))
+    selected_address = "new"
     form = DeliveryForm(request.POST or None, initial={"full_name": request.user.get_full_name()})
-    if request.method == "POST" and form.is_valid():
+    valid_submission = False
+    saved_address = None
+    if request.method == "POST":
+        selected_address = request.POST.get("saved_address", "new")
+        if selected_address != "new":
+            try:
+                saved_address = request.user.saved_addresses.get(pk=selected_address)
+                valid_submission = True
+            except (CustomerAddress.DoesNotExist, ValueError, TypeError):
+                form.add_error(None, "Choose one of your saved addresses or enter a new address.")
+        else:
+            valid_submission = form.is_valid()
+    elif saved_addresses:
+        selected_address = str(saved_addresses[0].pk)
+    if request.method == "POST" and valid_submission:
         try:
             with transaction.atomic():
                 # Re-read and lock current inventory just before the COD order is committed.
@@ -300,16 +316,83 @@ def checkout(request):
                     OrderItem.objects.create(order=order, product=product, florist=product.florist, product_name=product.name, unit_price=product.price, quantity=item.quantity)
                     product.stock -= item.quantity
                     product.save(update_fields=["stock"])
-                delivery = form.save(commit=False)
-                delivery.order = order
-                delivery.save()
+                if saved_address:
+                    delivery = DeliveryInfo.objects.create(
+                        order=order, full_name=saved_address.recipient_name,
+                        phone=saved_address.phone_number, address=saved_address.street_address,
+                        city=saved_address.city, state=saved_address.state,
+                        pin_code=saved_address.pincode,
+                    )
+                else:
+                    delivery = form.save(commit=False)
+                    delivery.order = order
+                    delivery.save()
+                    if request.POST.get("save_address") == "on":
+                        CustomerAddress.objects.create(
+                            customer=request.user,
+                            recipient_name=delivery.full_name,
+                            phone_number=delivery.phone,
+                            street_address=delivery.address,
+                            city=delivery.city,
+                            state=delivery.state,
+                            pincode=delivery.pin_code,
+                            is_default=not request.user.saved_addresses.exists(),
+                        )
                 cart.items.all().delete()
         except ValueError as error:
             messages.error(request, str(error))
             return redirect("cart")
         messages.success(request, "Order placed successfully. Pay cash on delivery.")
         return redirect("order_success", order_number=order.order_number)
-    return render(request, "checkout.html", {"form": form, "cart_items": items, "total": sum((i.line_total for i in items), Decimal("0.00"))})
+    return render(request, "checkout.html", {
+        "form": form, "cart_items": items,
+        "total": sum((i.line_total for i in items), Decimal("0.00")),
+        "saved_addresses": saved_addresses,
+        "selected_address": selected_address,
+    })
+
+@login_required
+def addresses(request):
+    if request.user.role != "customer":
+        return access_denied(request)
+    customer_addresses = request.user.saved_addresses.order_by("-is_default", "-created_at")
+    form = CustomerAddressForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        address = form.save(commit=False)
+        address.customer = request.user
+        if not customer_addresses.exists():
+            address.is_default = True
+        address.save()
+        messages.success(request, "Address saved to your address book.")
+        return redirect("addresses")
+    return render(request, "marketplace/addresses.html", {"addresses": customer_addresses, "form": form})
+
+@login_required
+@require_POST
+def address_set_default(request, address_id):
+    if request.user.role != "customer":
+        return access_denied(request)
+    address = get_object_or_404(CustomerAddress, pk=address_id, customer=request.user)
+    address.is_default = True
+    address.save(update_fields=["is_default"])
+    messages.success(request, "Default delivery address updated.")
+    return redirect("addresses")
+
+@login_required
+@require_POST
+def address_delete(request, address_id):
+    if request.user.role != "customer":
+        return access_denied(request)
+    address = get_object_or_404(CustomerAddress, pk=address_id, customer=request.user)
+    was_default = address.is_default
+    address.delete()
+    if was_default:
+        next_address = request.user.saved_addresses.order_by("-created_at").first()
+        if next_address:
+            next_address.is_default = True
+            next_address.save(update_fields=["is_default"])
+    messages.success(request, "Address removed from your address book.")
+    return redirect("addresses")
 
 @role_required("customer", "admin")
 def order_success(request, order_number):

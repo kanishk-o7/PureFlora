@@ -21,9 +21,14 @@
         <h2>Delivery address</h2>
         <form method="post" class="stack-form">
           {% csrf_token %}
-          {% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endfor %}
+          {% if saved_addresses %}<div class="form-field"><span class="field-label">Choose a saved address</span><div class="saved-address-options">
+            {% for address in saved_addresses %}<label class="saved-address-option"><input type="radio" name="saved_address" value="{{ address.pk }}" {% if selected_address == address.pk|stringformat:"s" %}checked{% endif %}><span><strong>{{ address.recipient_name }}{% if address.is_default %} <small class="address-default-badge">Default</small>{% endif %}</strong><span>{{ address.street_address }}{% if address.landmark %}, {{ address.landmark }}{% endif %}, {{ address.city }}, {{ address.state }} {{ address.pincode }}</span><small>{{ address.phone_number }}</small></span></label>{% endfor %}
+            <label class="saved-address-option"><input type="radio" name="saved_address" value="new" {% if selected_address == "new" %}checked{% endif %}><span><strong>Deliver to a new address</strong><small>Enter a different delivery location.</small></span></label>
+          </div></div>{% else %}<input type="hidden" name="saved_address" value="new">{% endif %}
+          <div class="form-field" data-new-address-fields><h3>New delivery address</h3>{% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endfor %}<label class="check-row"><input type="checkbox" name="save_address" {% if request.POST.save_address %}checked{% endif %}> Save this address to my address book</label></div>
+          {% for error in form.non_field_errors %}<p class="inline-message">{{ error }}</p>{% endfor %}
           <input type="hidden" name="payment_method" value="COD">
-          <button class="button button-dark" type="submit">Place COD order <span>&#8594;</span></button>
+          <div class="checkout-actions"><a class="checkout-cancel-link" href="{% url 'cart' %}">Cancel checkout <span>· Back to bag</span></a><button class="button button-dark" type="submit">Place COD order <span>&#8594;</span></button></div>
         </form>
       </div>
       <aside class="order-summary">
@@ -35,5 +40,18 @@
       </aside>
     </section>
   </main>
+  {% if saved_addresses %}<script>
+    (() => {
+      const section = document.querySelector("[data-new-address-fields]");
+      const update = () => {
+        const selected = document.querySelector('input[name="saved_address"]:checked');
+        const show = !selected || selected.value === "new";
+        section.hidden = !show;
+        section.querySelectorAll("input, textarea, select").forEach((field) => { field.disabled = !show; });
+      };
+      document.querySelectorAll('input[name="saved_address"]').forEach((radio) => radio.addEventListener("change", update));
+      update();
+    })();
+  </script>{% endif %}
 </body>
 </html>

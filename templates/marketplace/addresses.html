@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saved Addresses — Pure Flora</title><link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+  <div class="announcement">YOUR DELIVERY DETAILS</div>
+  <header class="site-header"><a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a><nav class="main-nav"><a href="{% url 'account' %}">My account</a><a href="{% url 'order_history' %}">My Orders</a><a href="{% url 'products' %}">Shop flowers</a></nav></header>
+  <main class="inner-page dashboard-page">
+    <section class="dashboard-welcome"><div><div class="eyebrow">YOUR ACCOUNT</div><h1>Saved <em>addresses.</em></h1><p>Keep delivery details handy for a quicker checkout.</p></div><a class="text-link" href="{% url 'account' %}">Back to account</a></section>
+    <section class="account-overview-grid">
+      {% for address in addresses %}<article class="dashboard-card">
+        <div class="card-heading"><div><span class="eyebrow">{{ address.recipient_name }}</span><h2>{{ address.city }}</h2></div>{% if address.is_default %}<span class="address-default-badge">Default</span>{% endif %}</div>
+        <p>{{ address.street_address }}{% if address.landmark %}, {{ address.landmark }}{% endif %}<br>{{ address.city }}, {{ address.state }} {{ address.pincode }}<br>{{ address.phone_number }}</p>
+        <div class="checkout-actions">{% if not address.is_default %}<form method="post" action="{% url 'address_set_default' address.pk %}">{% csrf_token %}<button class="button button-dark" type="submit">Make default</button></form>{% endif %}<form method="post" action="{% url 'address_delete' address.pk %}" onsubmit="return confirm('Remove this saved address?')">{% csrf_token %}<button class="text-link" type="submit">Delete</button></form></div>
+      </article>{% empty %}<article class="dashboard-card"><h2>No saved addresses yet</h2><p>Add one below or save an address during checkout.</p></article>{% endfor %}
+    </section>
+    <section class="dashboard-card" style="margin-top:24px"><span class="eyebrow">ADD A DELIVERY LOCATION</span><h2>New address</h2>
+      <form method="post" class="stack-form">{% csrf_token %}
+        {% for field in form %}<div class="form-field">{% if field.field.widget.input_type == 'checkbox' %}<label class="check-row">{{ field }} {{ field.label }}</label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}{% for error in field.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endfor %}
+        <button class="button button-dark" type="submit">Save address <span>&#8594;</span></button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
