@@ -12,7 +12,7 @@ urlpatterns = [
     path("orders/", views.order_history, name="order_history"),
     path("orders/<int:order_id>/", views.order_detail, name="order_detail"),
     path("orders/<int:order_id>/cancel/", views.cancel_order, name="cancel_order"),
-    path("accounts/register/", views.register, name="register"), path("accounts/login/", views.login_view, name="login"), path("accounts/logout/", views.logout_view, name="logout"),
+    path("accounts/register/", views.register, name="register"), path("accounts/login/", views.login_view, name="login"), path("accounts/logout/", views.logout_view, name="logout"), path("accounts/account/", views.account, name="account"),
     path("florist/", views.florist_dashboard, name="florist_dashboard"), path("florist/products/add/", views.product_create, name="product_create"),
     path("florist/profile/", views.florist_profile, name="florist_profile"),
     path("florist/products/<int:pk>/edit/", views.product_edit, name="product_edit"), path("florist/products/<int:pk>/delete/", views.product_delete, name="product_delete"),

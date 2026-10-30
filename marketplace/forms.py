@@ -1,6 +1,7 @@
 """Server-side forms used by customer and florist workflows."""
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from decimal import Decimal
 from .models import CustomUser, DeliveryInfo, Product, OrderItem, FloristProfile, Review
 
 class RegistrationForm(UserCreationForm):
@@ -23,6 +24,12 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = ("category", "name", "description", "price", "unit", "image", "image_url", "stock", "is_active")
+
+    def clean_price(self):
+        price = self.cleaned_data["price"]
+        if price <= Decimal("0.00"):
+            raise forms.ValidationError("Price must be greater than zero.")
+        return price
 
 class FloristProfileForm(forms.ModelForm):
     class Meta:

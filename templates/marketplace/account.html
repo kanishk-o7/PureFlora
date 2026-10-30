@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My account — Pure Flora</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+  <div class="announcement">YOUR PURE FLORA ACCOUNT</div>
+  <header class="site-header"><a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a><nav class="main-nav"><a href="{% url 'home' %}">Home</a><a href="{% url 'products' %}">Shop flowers</a>{% if account_user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% elif account_user.role == 'florist' %}<a href="{% url 'florist_dashboard' %}">Grower portal</a>{% endif %}</nav><div class="header-actions"><a class="cart-link" href="{% url 'cart' %}">Bag</a></div></header>
+  <main class="inner-page dashboard-page">
+    <section class="dashboard-welcome"><div><div class="eyebrow">ACCOUNT OVERVIEW</div><h1>Hello, <em>{{ account_user.first_name|default:account_user.username }}.</em></h1><p>Manage your Pure Flora account and find your recent activity.</p></div><a class="text-link" href="{% url 'logout' %}">Sign out</a></section>
+    <section class="account-overview-grid">
+      <article class="dashboard-card account-profile-card"><span class="account-avatar" aria-hidden="true">{{ account_user.first_name|default:account_user.username|slice:":1"|upper }}</span><span class="eyebrow">{{ account_user.get_role_display }}</span><h2>{{ account_user.get_full_name|default:account_user.username }}</h2><p>@{{ account_user.username }}</p>{% if account_user.email %}<p>{{ account_user.email }}</p>{% endif %}<div class="account-meta"><span>Account created</span><strong>{{ account_user.date_joined|date:"M Y" }}</strong></div></article>
+      {% if account_user.role == 'customer' %}
+        <article class="dashboard-card account-quick-card"><span class="eyebrow">YOUR SHOPPING</span><h2>{{ order_count }} order{{ order_count|pluralize }}</h2><p>See order status, delivery details, and reviews in one place.</p><a class="button button-dark" href="{% url 'order_history' %}">Open My Orders <span>&#8594;</span></a></article>
+      {% elif account_user.role == 'florist' %}
+        <article class="dashboard-card account-quick-card"><span class="eyebrow">YOUR GROWER SPACE</span><h2>{% if florist_profile %}{{ florist_profile.shop_name|default:"Your shop" }}{% else %}Your shop{% endif %}</h2><p>Manage your listings, profile, and incoming flower orders.</p><a class="button button-dark" href="{% url 'florist_dashboard' %}">Open grower dashboard <span>&#8594;</span></a><a class="text-link account-secondary-link" href="{% url 'florist_profile' %}">Edit shop profile</a></article>
+      {% else %}
+        <article class="dashboard-card account-quick-card"><span class="eyebrow">MARKETPLACE MANAGEMENT</span><h2>Admin dashboard</h2><p>Review orders, growers, customers, and marketplace listings.</p><a class="button button-dark" href="{% url 'admin_dashboard' %}">Open admin dashboard <span>&#8594;</span></a></article>
+      {% endif %}
+    </section>
+    {% if account_user.role == 'customer' %}<section class="dashboard-card account-recent-orders"><div class="card-heading"><div><span class="eyebrow">RECENT ACTIVITY</span><h2>Recent orders</h2></div><a class="text-link" href="{% url 'order_history' %}">View all orders</a></div><div class="activity-list">{% for order in recent_orders %}<div class="activity-item"><span class="activity-dot pink"></span><div><strong>{{ order.order_number }}</strong><p>{{ order.get_order_status_display }} · ₹{{ order.total_amount }}</p><small>{{ order.created_at|date:"d M Y" }}</small></div><a class="text-link" href="{% url 'order_detail' order.pk %}">Details</a></div>{% empty %}<p>You haven’t placed an order yet. <a href="{% url 'products' %}">Browse flowers</a>.</p>{% endfor %}</div></section>{% endif %}
+  </main>
+  <footer class="site-footer"><div class="footer-bottom"><span>© 2026 Pure Flora</span><span>Made with care, petal by petal <b>✿</b></span></div></footer>
+</body>
+</html>

@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db import IntegrityError
-from django.db.models import Q, Sum, F
+from django.db.models import Avg, Count, Q, Sum, F, Prefetch
 from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -345,11 +345,52 @@ def logout_view(request):
     messages.info(request, "You have signed out.")
     return redirect("home")
 
+@login_required
+def account(request):
+    """Show the signed-in user's account overview and role-specific shortcuts."""
+    context = {"account_user": request.user}
+    if request.user.role == "customer":
+        context["recent_orders"] = Order.objects.filter(customer=request.user).order_by("-created_at")[:5]
+        context["order_count"] = Order.objects.filter(customer=request.user).count()
+    elif request.user.role == "florist":
+        context["florist_profile"] = getattr(request.user, "florist_profile", None)
+    return render(request, "marketplace/account.html", context)
+
 @role_required("florist")
 def florist_dashboard(request):
     products = Product.objects.filter(florist=request.user).select_related("category")
-    orders = Order.objects.filter(items__florist=request.user).distinct().order_by("-created_at")[:8]
-    return render(request, "dashboard.html", {"seller_products": products, "seller_orders": orders, "listing_count": products.count()})
+    seller_lines = OrderItem.objects.filter(florist=request.user)
+    seller_orders = list(
+        Order.objects.filter(items__florist=request.user)
+        .distinct()
+        .order_by("-created_at")
+        .prefetch_related(Prefetch(
+            "items",
+            queryset=OrderItem.objects.filter(florist=request.user).select_related("product"),
+            to_attr="florist_items",
+        ))[:8]
+    )
+    for order in seller_orders:
+        order.florist_total = sum(
+            (item.line_total for item in order.florist_items if item.fulfillment_status != "cancelled"),
+            Decimal("0.00"),
+        )
+    rating = Review.objects.filter(product__florist=request.user).aggregate(
+        average=Avg("rating"), count=Count("pk"),
+    )
+    delivered_sales = seller_lines.filter(fulfillment_status="delivered").aggregate(
+        total=Sum(F("unit_price") * F("quantity")),
+    )["total"] or Decimal("0.00")
+    context = {
+        "seller_products": products,
+        "seller_orders": seller_orders,
+        "listing_count": products.filter(is_active=True).count(),
+        "orders_to_prepare": seller_lines.filter(fulfillment_status__in=["pending", "processing"]).count(),
+        "delivered_sales": delivered_sales,
+        "average_rating": round(rating["average"], 1) if rating["average"] is not None else None,
+        "review_count": rating["count"],
+    }
+    return render(request, "dashboard.html", context)
 
 @role_required("florist")
 def florist_profile(request):
@@ -394,10 +435,25 @@ def product_delete(request, pk):
 @role_required("florist")
 def florist_orders(request):
     # Each displayed row is a vendor-owned line item, never the entire shared order.
-    fulfillment_items = OrderItem.objects.filter(florist=request.user).select_related(
-        "order", "order__customer", "product"
+    items = OrderItem.objects.filter(florist=request.user).select_related(
+        "order", "order__customer", "order__delivery_info", "product"
     ).order_by("-order__created_at", "pk")
-    return render(request, "florist_orders.html", {"fulfillment_items": fulfillment_items})
+    page_obj = Paginator(items, 20).get_page(request.GET.get("page"))
+    next_statuses = {
+        "pending": ("processing", "cancelled"),
+        "processing": ("shipped", "cancelled"),
+        "shipped": ("delivered",),
+    }
+    choices = dict(OrderItem.FULFILLMENT_CHOICES)
+    fulfillment_items = list(page_obj.object_list)
+    for item in fulfillment_items:
+        item.available_fulfillment_choices = [
+            (status, choices[status]) for status in next_statuses.get(item.fulfillment_status, set())
+        ]
+    return render(request, "florist_orders.html", {
+        "fulfillment_items": fulfillment_items,
+        "page_obj": page_obj,
+    })
 
 @require_POST
 @role_required("florist")
@@ -417,11 +473,19 @@ def florist_order_status(request, item_id):
         new_status = form.cleaned_data["fulfillment_status"]
         # ModelForm validation copies the submitted status onto its instance, so use
         # the database value captured before validation for transition checks.
-        if previous_status == "cancelled":
-            if new_status != "cancelled":
-                messages.error(request, "A cancelled line item cannot be reopened.")
-                return redirect("florist_orders")
-            messages.info(request, "This line item is already cancelled.")
+        if previous_status == new_status:
+            messages.info(request, "This line item is already marked with that status.")
+            return redirect("florist_orders")
+
+        allowed_transitions = {
+            "pending": {"processing", "cancelled"},
+            "processing": {"shipped", "cancelled"},
+            "shipped": {"delivered"},
+            "delivered": set(),
+            "cancelled": set(),
+        }
+        if new_status not in allowed_transitions.get(previous_status, set()):
+            messages.error(request, "Update statuses in order: preparing, shipped, then delivered. Only unshipped items can be cancelled.")
             return redirect("florist_orders")
 
         if new_status == "cancelled" and not item.stock_restored:
