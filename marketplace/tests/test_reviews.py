@@ -80,6 +80,13 @@ class ReviewTests(TestCase):
         order_response = self.client.get(reverse("order_detail", args=[self.order.pk]))
         self.assertEqual(order_response.status_code, 200)
         self.assertContains(order_response, "Rate &amp; Review")
+        self.assertContains(order_response, "ORDER JOURNEY")
+        self.assertContains(order_response, "Progress updates")
+
+    def test_customer_tracking_entry_goes_to_my_orders(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("tracking"), {"order_number": self.order.order_number})
+        self.assertRedirects(response, reverse("order_history"))
 
     def test_duplicate_review_is_rejected(self):
         self.client.force_login(self.customer)

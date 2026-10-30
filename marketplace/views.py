@@ -178,6 +178,33 @@ def _customer_can_cancel_order(order):
         status in {"pending", "processing", "cancelled"} for status in statuses
     )
 
+def _order_tracking_steps(order):
+    """Build the customer-facing progress timeline from live item fulfillment states."""
+    item_statuses = list(order.items.values_list("fulfillment_status", flat=True))
+    if order.order_status == "partially_fulfilled":
+        if any(status in {"shipped", "delivered"} for status in item_statuses):
+            current_step = 2
+        elif any(status == "processing" for status in item_statuses):
+            current_step = 1
+        else:
+            current_step = 0
+    else:
+        current_step = {"pending": 0, "confirmed": 1, "shipped": 2, "delivered": 3}.get(order.order_status, -1)
+    steps = [
+        {"title": "Order placed", "description": "Your order is saved and the florist has received it."},
+        {"title": "Being prepared", "description": "The florist is selecting and packing your flowers."},
+        {"title": "On the way", "description": "Your flowers have been handed off for delivery."},
+        {"title": "Delivered", "description": "Your flowers have arrived."},
+    ]
+    return [
+        {
+            **step,
+            "complete": current_step >= 0 and index < current_step,
+            "current": index == current_step,
+        }
+        for index, step in enumerate(steps)
+    ]
+
 def cart_view(request):
     items = []
     total = Decimal("0.00")
@@ -436,6 +463,7 @@ def order_detail(request, order_id):
         "order": order,
         "reviewed_product_ids": reviewed_product_ids,
         "can_cancel": _customer_can_cancel_order(order),
+        "tracking_steps": _order_tracking_steps(order),
     })
 
 @require_POST
@@ -483,10 +511,14 @@ def admin_dashboard(request):
     return render(request, "admin_dashboard.html", context)
 
 def tracking(request):
-    """Let signed-in customers look up their own orders by order number."""
+    """Keep the legacy tracking URL pointed at the signed-in customer's order list."""
     if not request.user.is_authenticated:
         messages.info(request, "Please sign in to track your orders.")
         return redirect("login")
+    if request.user.role == "customer":
+        return redirect("order_history")
+    if request.user.role != "admin" and not request.user.is_superuser:
+        return access_denied(request)
     order_number = request.GET.get("order_number", "").strip()
     order = None
     if order_number:
