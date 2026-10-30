@@ -1,5 +1,6 @@
 """Marketplace data models. Order placement uses a database transaction for stock safety."""
 import uuid
+from django.db.models import Avg
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -45,6 +46,13 @@ class Product(models.Model):
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    @property
+    def average_rating(self):
+        average = self.reviews.aggregate(value=Avg("rating"))["value"]
+        return round(average, 1) if average is not None else 0.0
+    @property
+    def total_reviews(self):
+        return self.reviews.count()
     def get_image_url(self):
         """Prefer an uploaded image, then the retained remote URL, then a local placeholder."""
         if self.image:
@@ -126,3 +134,18 @@ class DeliveryInfo(models.Model):
     city = models.CharField(max_length=100)
     pin_code = models.CharField(max_length=12)
     def __str__(self): return f"Delivery for {self.order.order_number}"
+
+class Review(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    customer = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="reviews")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="reviews")
+    rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("customer", "product", "order")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.rating}/5 review for {self.product} by {self.customer}"

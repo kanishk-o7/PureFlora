@@ -1,7 +1,7 @@
 """Server-side forms used by customer and florist workflows."""
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from .models import CustomUser, DeliveryInfo, Product, OrderItem, FloristProfile
+from .models import CustomUser, DeliveryInfo, Product, OrderItem, FloristProfile, Review
 
 class RegistrationForm(UserCreationForm):
     email = forms.EmailField()
@@ -34,3 +34,12 @@ class OrderItemStatusForm(forms.ModelForm):
     class Meta:
         model = OrderItem
         fields = ("fulfillment_status",)
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ("rating", "comment")
+        widgets = {
+            "rating": forms.Select(attrs={"class": "review-rating"}),
+            "comment": forms.Textarea(attrs={"rows": 4, "placeholder": "Share a few details about your flowers (optional)."}),
+        }

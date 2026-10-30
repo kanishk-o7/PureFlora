@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, FloristProfile, Category, Product, Cart, CartItem, Order, OrderItem, DeliveryInfo
+from .models import CustomUser, FloristProfile, Category, Product, Cart, CartItem, Order, OrderItem, DeliveryInfo, Review
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -29,3 +29,4 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ("order_number", "total_amount", "order_status", "created_at")
 
 admin.site.register([FloristProfile, Category, Cart, CartItem, OrderItem, DeliveryInfo])
+admin.site.register(Review)

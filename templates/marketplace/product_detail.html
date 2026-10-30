@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ product.name }} — Pure Flora</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  {% if messages %}<div class="inline-message" role="status">{% for message in messages %}{{ message }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+  <div class="announcement">FRESH FROM THE FARM · WHOLESALE MADE BEAUTIFUL</div>
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a>
+    <nav class="main-nav"><a href="{% url 'home' %}">Home</a><a class="active" href="{% url 'products' %}">Shop flowers</a><a href="{% url 'florist_dashboard' %}">For growers</a>{% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}</nav>
+    <div class="header-actions"><a class="cart-link" href="{% url 'cart' %}">Cart</a></div>
+  </header>
+  <main class="inner-page">
+    <section class="section product-detail-page">
+      <div class="product-details-card">
+        <img src="{{ product.get_image_url }}" alt="{{ product.name }}">
+        <div class="product-details-copy">
+          <span class="eyebrow">{{ product.category.name }} · PURE FLORA SELECTION</span>
+          <h1>{{ product.name }}</h1>
+          <p>{{ product.description }}</p>
+          <div class="product-details-price">₹{{ product.price }} <span>/ {{ product.get_unit_display }}</span></div>
+          <p class="review-summary" aria-label="Rated {{ average_rating }} out of 5 from {{ review_count }} reviews">★ {{ average_rating|floatformat:1 }} <span>({{ review_count }} review{{ review_count|pluralize }})</span></p>
+          <div class="detail-meta">Grown by <strong>{{ product.florist.florist_profile.shop_name|default:product.florist.username }}</strong></div>
+          <div class="detail-meta">{% if product.stock %}{{ product.stock }} available · {{ product.get_unit_display }}{% else %}Currently sold out{% endif %}</div>
+          <form method="post" action="{% url 'add_to_cart' product.pk %}" class="product-details-actions">{% csrf_token %}<button class="button button-dark" {% if not product.stock %}disabled{% endif %}>Add to cart</button></form>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reviews-section" id="reviews">
+      <div class="section-heading"><div><span class="eyebrow">CUSTOMER NOTES</span><h2>Reviews <em>from buyers.</em></h2><p>Average {{ average_rating|floatformat:1 }} out of 5 from {{ review_count }} review{{ review_count|pluralize }}.</p></div></div>
+      {% if eligible_reviews %}
+        <div class="review-write-list">
+          {% for entry in eligible_reviews %}
+            <article class="dashboard-card review-write-card">
+              <h3>Share your experience</h3>
+              <p>Verified purchase · Order {{ entry.order.order_number }}</p>
+              <form method="post" action="{% url 'add_review' product.pk entry.order.pk %}" class="stack-form review-form">
+                {% csrf_token %}
+                <div class="form-field"><label for="{{ entry.form.rating.id_for_label }}">Your rating</label>{{ entry.form.rating }}{% for error in entry.form.rating.errors %}<small class="review-error">{{ error }}</small>{% endfor %}</div>
+                <div class="form-field"><label for="{{ entry.form.comment.id_for_label }}">Your review (optional)</label>{{ entry.form.comment }}{% for error in entry.form.comment.errors %}<small class="review-error">{{ error }}</small>{% endfor %}</div>
+                <button class="button button-dark" type="submit">Submit review</button>
+              </form>
+            </article>
+          {% endfor %}
+        </div>
+      {% elif request.user.is_authenticated and request.user.role == 'customer' %}
+        <p class="review-hint">Review options will appear here after a delivered order.</p>
+      {% endif %}
+
+      <div class="review-list">
+        {% for review in reviews %}
+          <article class="dashboard-card review-card">
+            <div class="review-card-heading"><div><strong>{{ review.customer.get_full_name|default:review.customer.username }}</strong><div class="review-stars" aria-label="{{ review.rating }} out of 5 stars">{% for star in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</div></div><time datetime="{{ review.created_at|date:'c' }}">{{ review.created_at|date:"M j, Y" }}</time></div>
+            {% if review.comment %}<p>{{ review.comment|linebreaksbr }}</p>{% endif %}
+            <small class="verified-buyer">Verified purchase · Order {{ review.order.order_number }}</small>
+          </article>
+        {% empty %}
+          <div class="dashboard-card review-empty"><p>No reviews yet. Be the first verified buyer to share your experience.</p></div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="footer-bottom"><span>© 2026 Pure Flora</span><span>Made with care, petal by petal <b>✿</b></span></div></footer>
+</body>
+</html>

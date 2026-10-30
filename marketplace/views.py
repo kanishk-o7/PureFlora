@@ -3,18 +3,21 @@ from decimal import Decimal
 from functools import wraps
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db import IntegrityError
 from django.db.models import Q, Sum, F
 from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.http import JsonResponse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from .forms import RegistrationForm, LoginForm, DeliveryForm, ProductForm, OrderItemStatusForm, FloristProfileForm
-from .models import CustomUser, Category, Product, Cart, CartItem, Order, OrderItem, DeliveryInfo, FloristProfile
+from .forms import RegistrationForm, LoginForm, DeliveryForm, ProductForm, OrderItemStatusForm, FloristProfileForm, ReviewForm
+from .models import CustomUser, Category, Product, Cart, CartItem, Order, OrderItem, DeliveryInfo, FloristProfile, Review
 
 def access_denied(request):
     """Render the themed forbidden page for authenticated users without access."""
@@ -92,7 +95,79 @@ def products(request):
     })
 
 def product_detail(request, pk):
-    return render(request, "product_detail.html", {"product": get_object_or_404(Product, pk=pk, is_active=True)})
+    product = get_object_or_404(Product, pk=pk, is_active=True)
+    context = {"product": product,
+               "reviews": product.reviews.select_related("customer", "order"),
+               "review_count": product.total_reviews,
+               "average_rating": product.average_rating,
+               "eligible_reviews": []}
+    if request.user.is_authenticated and request.user.role == "customer":
+        eligible_orders = Order.objects.filter(
+            customer=request.user,
+            items__product=product,
+            items__fulfillment_status="delivered",
+        ).distinct().order_by("-created_at")
+        existing_order_ids = set(Review.objects.filter(
+            customer=request.user, product=product,
+            order__in=eligible_orders,
+        ).values_list("order_id", flat=True))
+        for order in eligible_orders:
+            if order.pk not in existing_order_ids:
+                context["eligible_reviews"].append({"order": order, "form": ReviewForm(prefix=f"order-{order.pk}")})
+    return render(request, "marketplace/product_detail.html", context)
+
+@login_required
+@require_POST
+def add_review(request, product_id, order_id):
+    if request.user.role != "customer":
+        return access_denied(request)
+    product = get_object_or_404(Product, pk=product_id, is_active=True)
+    order = get_object_or_404(Order, pk=order_id)
+    if order.customer_id != request.user.id:
+        raise PermissionDenied("You can only review products from your own orders.")
+    delivered = OrderItem.objects.filter(
+        order=order, product=product, fulfillment_status="delivered"
+    ).exists()
+    if not delivered:
+        raise PermissionDenied("You can review this product after it has been delivered.")
+    if Review.objects.filter(customer=request.user, product=product, order=order).exists():
+        messages.info(request, "You have already reviewed this flower for this order.")
+        return redirect("product_detail", pk=product.pk)
+
+    form = ReviewForm(request.POST, prefix=f"order-{order.pk}")
+    if form.is_valid():
+        review = form.save(commit=False)
+        review.product = product
+        review.customer = request.user
+        review.order = order
+        try:
+            review.save()
+        except IntegrityError:
+            # The unique constraint also guards simultaneous duplicate submissions.
+            messages.info(request, "You have already reviewed this flower for this order.")
+        else:
+            messages.success(request, "Thank you for sharing your review.")
+        return redirect(f"{reverse('product_detail', args=[product.pk])}#reviews")
+
+    context = {"product": product,
+               "reviews": product.reviews.select_related("customer", "order"),
+               "review_count": product.total_reviews,
+               "average_rating": product.average_rating,
+               "eligible_reviews": []}
+    eligible_orders = Order.objects.filter(
+        customer=request.user, items__product=product,
+        items__fulfillment_status="delivered",
+    ).distinct().order_by("-created_at")
+    reviewed_order_ids = set(Review.objects.filter(
+        customer=request.user, product=product, order__in=eligible_orders,
+    ).values_list("order_id", flat=True))
+    for eligible_order in eligible_orders:
+        if eligible_order.pk not in reviewed_order_ids:
+            context["eligible_reviews"].append({
+                "order": eligible_order,
+                "form": form if eligible_order.pk == order.pk else ReviewForm(prefix=f"order-{eligible_order.pk}"),
+            })
+    return render(request, "marketplace/product_detail.html", context, status=400)
 
 def _get_cart(user):
     return Cart.objects.get_or_create(customer=user)[0]
@@ -126,10 +201,10 @@ def add_to_cart(request, product_id):
             return redirect("cart")
         item.quantity += 1
         item.save(update_fields=["quantity"])
-    messages.success(request, "Added to cart.")
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         count = sum(cart.items.values_list("quantity", flat=True))
         return JsonResponse({"ok": True, "message": "Added to cart.", "cart_count": count})
+    messages.success(request, "Added to cart.")
     next_url = request.POST.get("next", "")
     if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         # Return to the same catalog/filter state and anchor on the flower just added.
@@ -339,7 +414,13 @@ def order_detail(request, order_id):
     order = get_object_or_404(
         Order.objects.filter(customer=request.user).prefetch_related("items__florist"), pk=order_id
     )
-    return render(request, "marketplace/order_detail.html", {"order": order})
+    reviewed_product_ids = set(Review.objects.filter(
+        customer=request.user, order=order,
+    ).values_list("product_id", flat=True))
+    return render(request, "marketplace/order_detail.html", {
+        "order": order,
+        "reviewed_product_ids": reviewed_product_ids,
+    })
 
 @role_required("admin")
 def admin_dashboard(request):
