@@ -38,4 +38,5 @@
   }
   if (location.hash === "#catalog") $("#productSearch").focus();
   render();
+  window.addEventListener("pf:products-updated", render);
 })();

@@ -19,4 +19,8 @@
   $("#sampleOrder").addEventListener("click",()=>{$("#orderNumber").value="PF-2048";showOrder("PF-2048");});
   const query=new URLSearchParams(location.search).get("order");
   if(query){$("#orderNumber").value=query;showOrder(query);}
+  window.addEventListener("pf:products-updated", () => {
+    const currentOrder = $("#orderNumber").value.trim();
+    if (currentOrder) showOrder(currentOrder);
+  });
 })();

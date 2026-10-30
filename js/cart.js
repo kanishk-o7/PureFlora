@@ -45,4 +45,5 @@
     render();
   });
   render();
+  window.addEventListener("pf:products-updated", render);
 })();

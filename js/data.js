@@ -1,4 +1,4 @@
-/* Pure Flora demo catalogue. All product details are sample data. */
+/* Pure Flora demo catalogue. Backend data replaces this fallback when the API is reachable. */
 window.PF_PRODUCTS = [
  {id:"rose-blush",name:"Blush Garden Roses",category:"Roses",price:250,unit:"bunch of 20",stock:48,grower:"Meadow & Stem Farm",tag:"Bestseller",color:"pink",image:"https://images.unsplash.com/photo-1494972308805-463bc619d34e?auto=format&fit=crop&w=900&q=85",description:"Soft blush petals with a beautifully classic silhouette."},
  {id:"rose-red",name:"Velvet Red Roses",category:"Roses",price:280,unit:"bunch of 20",stock:32,grower:"Rosewood Gardens",tag:"Loved",color:"red",image:"https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=900&q=85",description:"Rich red roses for bold, timeless arrangements."},
@@ -15,3 +15,19 @@ window.PF_PRODUCTS = [
 ];
 window.PF_CURRENCY = new Intl.NumberFormat("en-IN", {style:"currency",currency:"INR",maximumFractionDigits:0});
 window.PF_FORMAT = value => window.PF_CURRENCY.format(value);
+window.PF_API_BASE = window.PF_API_BASE || "http://127.0.0.1:8000/api";
+window.PF_PRODUCTS_READY = fetch(`${window.PF_API_BASE}/products/`)
+  .then(response => {
+    if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
+    return response.json();
+  })
+  .then(products => {
+    if (!Array.isArray(products)) throw new Error("Catalog API returned an unexpected response.");
+    window.PF_PRODUCTS = products;
+    window.dispatchEvent(new Event("pf:products-updated"));
+    return products;
+  })
+  .catch(error => {
+    console.info("Using the sample flower catalogue until the Django API is available.", error);
+    return window.PF_PRODUCTS;
+  });

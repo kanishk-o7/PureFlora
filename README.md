@@ -75,3 +75,28 @@ Explain the product goal, buyer/grower roles, responsive design, data model in `
 - Visible “Semester project demo” footer wording removed.
 
 This remains a front-end-only demo. Accounts and listings are stored locally in the browser and are not secure or shared across devices. Product images require an internet connection.
+
+## Django backend (first milestone)
+
+The website uses plain HTML, CSS, and JavaScript, so there is no npm build command. The Django API now serves the flower catalogue at `/api/products/`; the website requests that data and keeps its sample catalogue as a fallback when the API is not running. The cart, sign-in, and checkout are still browser-only demos at this stage.
+
+### Start the backend on Windows
+
+Install Python 3.10 or newer first. Then open a VS Code terminal in the `backend` folder and run:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py seed_catalog
+.\.venv\Scripts\python.exe manage.py runserver 8000
+```
+
+Visit `http://127.0.0.1:8000/api/products/` to view the catalog API and `http://127.0.0.1:8000/api/health/` to check that the server is responding. Keep this terminal running.
+
+### Run the website with the API
+
+Open the project folder in VS Code, right-click `index.html`, and choose **Open with Live Server**. Leave the Django terminal running too. The API allows the default Live Server addresses on port 5500. If the API is stopped, the pages continue using the included sample catalog.
+
+For this first milestone, SQLite is used locally to reduce setup steps. The Django settings also support PostgreSQL through the `DB_ENGINE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT` values in `backend/.env`; switch to PostgreSQL before building persistent user, inventory, and order workflows.

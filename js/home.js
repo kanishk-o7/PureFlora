@@ -1,9 +1,14 @@
 (() => {
   const grid = document.getElementById("featuredProducts");
-  if (grid) {
-    const featured = window.PF.products().filter(p => ["rose-blush","lily-white","marigold-gold","tulip-pink"].includes(p.id));
+  function render() {
+    if (!grid) return;
+    const featured = window.PF.products().filter(p => ["rose-blush", "lily-white", "marigold-gold", "tulip-pink"].includes(p.id));
     grid.innerHTML = featured.map(p => window.PF.productCard(p)).join("");
     window.PF.bindProductActions(grid);
+  }
+  if (grid) {
+    render();
+    window.addEventListener("pf:products-updated", render);
   }
   const form = document.getElementById("newsletterForm");
   if (form) form.addEventListener("submit", event => {

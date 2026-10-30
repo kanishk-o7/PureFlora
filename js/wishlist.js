@@ -9,4 +9,5 @@
     grid.querySelectorAll("[data-wishlist]").forEach(button=>button.addEventListener("click",()=>setTimeout(render,0)));
   }
   render();
+  window.addEventListener("pf:products-updated", render);
 })();
