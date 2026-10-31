@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const mount = () => {
     if (document.querySelector('[data-site-back]')) return;
     const button = document.createElement('button');
@@ -15,9 +15,12 @@
       if (sameSiteReferrer && window.history.length > 1) window.history.back();
       else window.location.assign('/');
     });
+    const row = document.createElement('div');
+    row.className = 'site-back-row';
+    row.appendChild(button);
     const main = document.querySelector('main');
-    if (main) main.insertBefore(button, main.firstChild);
-    else document.body.insertBefore(button, document.body.firstChild);
+    if (main) main.insertBefore(row, main.firstChild);
+    else document.body.insertBefore(row, document.body.firstChild);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
   else mount();

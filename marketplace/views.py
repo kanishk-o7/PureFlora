@@ -73,7 +73,7 @@ def products(request):
     query_params = request.GET.copy()
     query_params.pop("page", None)
     cart_count = 0
-    if request.user.is_authenticated and request.user.role == "customer":
+    if request.user.is_authenticated and request.user.role in {"customer", "florist"}:
         cart_count = sum(_get_cart(request.user).items.values_list("quantity", flat=True))
     try:
         added_product_id = int(request.GET.get("added", ""))
@@ -216,7 +216,7 @@ def cart_view(request):
     items = []
     total = Decimal("0.00")
     count = 0
-    if request.user.is_authenticated and request.user.role == "customer":
+    if request.user.is_authenticated and request.user.role in {"customer", "florist"}:
         items = _get_cart(request.user).items.select_related("product", "product__category").all()
         total = sum((item.line_total for item in items), Decimal("0.00"))
         count = sum(item.quantity for item in items)
@@ -242,7 +242,7 @@ def _cart_htmx_response(request, feedback="", is_error=False):
     })
 
 @require_POST
-@role_required("customer")
+@role_required("customer", "florist")
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, pk=product_id, is_active=True)
     if product.stock <= 0:
@@ -274,7 +274,7 @@ def add_to_cart(request, product_id):
     return redirect("cart")
 
 @require_POST
-@role_required("customer")
+@role_required("customer", "florist")
 def update_cart_item(request, item_id):
     item = get_object_or_404(CartItem, pk=item_id, cart__customer=request.user)
     is_htmx = request.headers.get("HX-Request", "").lower() == "true"
@@ -297,14 +297,14 @@ def update_cart_item(request, item_id):
     return redirect("cart")
 
 @require_POST
-@role_required("customer")
+@role_required("customer", "florist")
 def remove_cart_item(request, item_id):
     get_object_or_404(CartItem, pk=item_id, cart__customer=request.user).delete()
     if request.headers.get("HX-Request", "").lower() == "true":
         return _cart_htmx_response(request, feedback="Flower removed from your bag.")
     return redirect("cart")
 
-@role_required("customer")
+@role_required("customer", "florist")
 def checkout(request):
     cart = _get_cart(request.user)
     items = list(cart.items.select_related("product").all())
@@ -382,7 +382,7 @@ def checkout(request):
 
 @login_required
 def addresses(request):
-    if request.user.role != "customer":
+    if request.user.role not in {"customer", "florist"}:
         return access_denied(request)
     customer_addresses = request.user.saved_addresses.order_by("-is_default", "-created_at")
     form = CustomerAddressForm(request.POST or None)
@@ -399,7 +399,7 @@ def addresses(request):
 @login_required
 @require_POST
 def address_set_default(request, address_id):
-    if request.user.role != "customer":
+    if request.user.role not in {"customer", "florist"}:
         return access_denied(request)
     address = get_object_or_404(CustomerAddress, pk=address_id, customer=request.user)
     address.is_default = True
@@ -410,7 +410,7 @@ def address_set_default(request, address_id):
 @login_required
 @require_POST
 def address_delete(request, address_id):
-    if request.user.role != "customer":
+    if request.user.role not in {"customer", "florist"}:
         return access_denied(request)
     address = get_object_or_404(CustomerAddress, pk=address_id, customer=request.user)
     was_default = address.is_default
@@ -423,14 +423,14 @@ def address_delete(request, address_id):
     messages.success(request, "Address removed from your address book.")
     return redirect("addresses")
 
-@role_required("customer", "admin")
+@role_required("customer", "florist", "admin")
 def order_success(request, order_number):
     order = get_object_or_404(Order.objects.prefetch_related("items"), order_number=order_number)
     if not (request.user.is_superuser or request.user.role == "admin" or order.customer_id == request.user.id):
         return access_denied(request)
     return render(request, "order_success.html", {
         "order": order,
-        "can_cancel": request.user.role == "customer" and _customer_can_cancel_order(order),
+        "can_cancel": request.user.role in {"customer", "florist"} and _customer_can_cancel_order(order),
     })
 
 def register(request):
@@ -461,10 +461,10 @@ def logout_view(request):
 def account(request):
     """Show the signed-in user's account overview and role-specific shortcuts."""
     context = {"account_user": request.user}
-    if request.user.role == "customer":
+    if request.user.role in {"customer", "florist"}:
         context["recent_orders"] = Order.objects.filter(customer=request.user).order_by("-created_at")[:5]
         context["order_count"] = Order.objects.filter(customer=request.user).count()
-    elif request.user.role == "florist":
+    if request.user.role == "florist":
         context["florist_profile"] = getattr(request.user, "florist_profile", None)
     return render(request, "marketplace/account.html", context)
 
@@ -649,7 +649,7 @@ def florist_order_status(request, item_id):
 @login_required
 def order_history(request):
     """Show only the signed-in customer's own orders."""
-    if request.user.role != "customer":
+    if request.user.role not in {"customer", "florist"}:
         return access_denied(request)
     orders = Order.objects.filter(customer=request.user).prefetch_related("items").order_by("-created_at")
     return render(request, "marketplace/order_history.html", {"orders": orders})
@@ -657,7 +657,7 @@ def order_history(request):
 @login_required
 def order_detail(request, order_id):
     """Fetch an order by both its ID and owner to prevent cross-customer access."""
-    if request.user.role != "customer":
+    if request.user.role not in {"customer", "florist"}:
         return access_denied(request)
     order = get_object_or_404(
         Order.objects.filter(customer=request.user).prefetch_related("items__florist", "items__product"), pk=order_id
@@ -681,7 +681,7 @@ def order_detail(request, order_id):
 @login_required
 def cancel_order(request, order_id):
     """Cancel a customer's order before any line has shipped and restore its stock once."""
-    if request.user.role != "customer":
+    if request.user.role not in {"customer", "florist"}:
         return access_denied(request)
 
     with transaction.atomic():
@@ -783,7 +783,7 @@ def tracking(request):
     if not request.user.is_authenticated:
         messages.info(request, "Please sign in to track your orders.")
         return redirect("login")
-    if request.user.role == "customer":
+    if request.user.role in {"customer", "florist"}:
         return redirect("order_history")
     if request.user.role != "admin" and not request.user.is_superuser:
         return access_denied(request)

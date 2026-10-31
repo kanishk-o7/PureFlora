@@ -12,7 +12,7 @@
   <div class="announcement">FRESH FROM THE FARM · WHOLESALE MADE BEAUTIFUL</div>
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}"><span class="brand-mark">✿</span><span>pure flora<small>FLOWERS, GROWN WITH CARE</small></span></a>
-    <nav class="main-nav"><a href="{% url 'home' %}">Home</a><a class="active" href="{% url 'products' %}">Shop flowers</a><a href="{% url 'florist_dashboard' %}">For growers</a>{% if request.user.is_authenticated and request.user.role == 'customer' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}{% if request.user.is_staff or request.user.is_superuser %}<a href="{% url 'admin_dashboard' %}">Marketplace Admin</a>{% endif %}</nav>
+    <nav class="main-nav"><a href="{% url 'home' %}">Home</a><a class="active" href="{% url 'products' %}">Shop flowers</a><a href="{% url 'florist_dashboard' %}">For growers</a>{% if request.user.is_authenticated and request.user.role == 'customer' or request.user.is_authenticated and request.user.role == 'florist' %}<a href="{% url 'order_history' %}">My Orders</a>{% endif %}{% if request.user.is_staff or request.user.is_superuser %}<a href="{% url 'admin_dashboard' %}">Marketplace Admin</a>{% endif %}</nav>
     <div class="header-actions"><a class="cart-link" href="{% url 'cart' %}">Cart</a></div>
   </header>
   <main class="inner-page">
@@ -27,7 +27,7 @@
           <p class="review-summary" aria-label="Rated {{ average_rating }} out of 5 from {{ review_count }} reviews">★ {{ average_rating|floatformat:1 }} <span>({{ review_count }} review{{ review_count|pluralize }})</span></p>
           <div class="detail-meta">Grown by <strong>{{ product.florist.florist_profile.shop_name|default:product.florist.username }}</strong></div>
           <div class="detail-meta">{% if product.stock %}{{ product.stock }} available · {{ product.get_unit_display }}{% else %}Currently sold out{% endif %}</div>
-          {% if request.user.is_authenticated and request.user.role == 'customer' %}<form method="post" action="{% url 'add_to_cart' product.pk %}" class="product-details-actions">{% csrf_token %}<button class="button button-dark" {% if not product.stock %}disabled{% endif %}>Add to cart</button></form>{% elif not request.user.is_authenticated %}<a class="button button-dark" href="{% url 'login' %}">Sign in to add to cart</a>{% else %}<p class="review-hint">A customer account is required to add items to the cart.</p>{% endif %}
+          {% if request.user.is_authenticated and request.user.role == 'customer' or request.user.is_authenticated and request.user.role == 'florist' %}<form method="post" action="{% url 'add_to_cart' product.pk %}" class="product-details-actions">{% csrf_token %}<button class="button button-dark" {% if not product.stock %}disabled{% endif %}>Add to cart</button></form>{% elif not request.user.is_authenticated %}<a class="button button-dark" href="{% url 'login' %}">Sign in to add to cart</a>{% else %}<p class="review-hint">A customer account is required to add items to the cart.</p>{% endif %}
         </div>
       </div>
     </section>
