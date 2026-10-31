@@ -25,5 +25,5 @@
     <dialog class="cancel-confirmation-dialog" id="cancel-order-{{ order.pk }}" aria-labelledby="cancel-order-title-{{ order.pk }}" aria-describedby="cancel-order-description-{{ order.pk }}"><div class="modal-card"><button class="modal-close" type="button" data-dialog-close aria-label="Close confirmation">&times;</button><span class="eyebrow">ORDER {{ order.order_number }}</span><h2 id="cancel-order-title-{{ order.pk }}">Cancel this order?</h2><p id="cancel-order-description-{{ order.pk }}">The order will be cancelled and its items returned to stock. Are you sure you want to continue?</p><div class="cancel-confirm-actions"><button class="button button-light" type="button" data-dialog-close>No, keep order</button><form class="cancel-confirm-form" method="post" action="{% url 'cancel_order' order.pk %}">{% csrf_token %}<button class="button cancel-order-button" type="submit">Yes, cancel order</button></form></div></div></dialog>{% endif %}
     </div></section>
   </main>
-<script src="{% static 'js/order-cancel-confirm.js' %}"></script></body>
+<script src="{% static 'js/order-cancel-confirm.js' %}"></script><script src="/static/js/back-navigation.js" defer></script></body>
 </html>

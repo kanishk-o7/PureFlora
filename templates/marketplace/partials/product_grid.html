@@ -13,7 +13,7 @@
       <p class="product-grower">Grown by {{ product.florist.florist_profile.shop_name|default:product.florist.username }}</p>
       <div class="product-bottom"><div><strong>&#8377;{{ product.price }}</strong><small>/ {{ product.get_unit_display }}</small></div>
         <form method="post" action="{% url 'wishlist_toggle' product.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'products' %}"><button class="wishlist-button" aria-label="Save to favourites">&#9825;</button></form>
-        <form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="add-button" {% if not product.stock %}disabled{% endif %} aria-label="Add {{ product.name }} to bag">&#43;</button></form>
+        {% if request.user.is_authenticated and request.user.role == 'customer' %}<form method="post" action="{% url 'add_to_cart' product.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="add-button" {% if not product.stock %}disabled{% endif %} aria-label="Add {{ product.name }} to bag">&#43;</button></form>{% elif not request.user.is_authenticated %}<a class="add-button" href="{% url 'login' %}" aria-label="Sign in as a customer to add {{ product.name }} to bag">&#43;</a>{% else %}<span class="review-hint">Customer account required</span>{% endif %}
       </div>
     </div>
   </article>

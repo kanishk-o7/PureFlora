@@ -16,5 +16,5 @@
       {% for item in order_items %}<tr><td>{{ item.product_name }}</td><td>{{ item.florist.florist_profile.shop_name|default:item.florist.username }}</td><td>{{ item.quantity }}</td><td>₹{{ item.unit_price }} / {{ item.product.get_unit_display }}</td><td>₹{{ item.line_total }}</td><td><span class="status-pill status-progress">{{ item.get_fulfillment_status_display }}</span></td><td>{% if item.fulfillment_status == 'delivered' %}{% if item.customer_review %}<span class="verified-buyer">Reviewed ({{ item.customer_review.rating }} Stars)</span> <a class="button button-dark review-action" href="{% url 'product_detail' item.product_id %}#reviews">Edit Review</a>{% else %}<a class="button button-dark review-action" href="{% url 'product_detail' item.product_id %}#reviews">Write a Review</a>{% endif %}{% else %}<span class="review-hint">Available after delivery</span>{% endif %}</td></tr>{% endfor %}
     </tbody></table></div><div class="summary-total"><span>COD total</span><strong>₹{{ order.total_amount }}</strong></div><a class="text-link" href="{% url 'order_history' %}">← Back to my orders</a></section>
   </main>
-<script src="{% static 'js/order-cancel-confirm.js' %}"></script></body>
+<script src="{% static 'js/order-cancel-confirm.js' %}"></script><script src="/static/js/back-navigation.js" defer></script></body>
 </html>
