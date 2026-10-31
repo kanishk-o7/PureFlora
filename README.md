@@ -58,7 +58,7 @@ Then sign in at `/accounts/login/`. Django admin is at `/django-admin/`; the mar
 
 The `seed_flowers` command safely imports or updates the twelve sample flower listings. New database migrations are not needed for a normal fresh setup; run `makemigrations` only after changing Django models. This configuration is for local development (`DEBUG=True`), not public production hosting.
 
-The florist product form accepts an uploaded image or a remote image URL. Uploaded images are served from `/media/` during local development. Product listings support search, category, maximum price, stock, sorting, and pagination. Customers sign in to add products and place COD orders; florists manage listings and fulfillment in their dashboard. No online payment provider is configured.
+The florist product form accepts an uploaded image or a remote image URL. Uploaded images are served from `/media/` during local development. Product listings support search, category, maximum price, stock, sorting, and pagination. Signed-in customers and florists can add products to their cart and place COD orders; florists can also manage their listings and assigned fulfillment in the florist dashboard. Product reviews remain customer-only. No online payment provider is configured.
 
 ## Main app files
 
@@ -67,7 +67,8 @@ The florist product form accepts an uploaded image or a remote image URL. Upload
 - `marketplace/views.py` / `marketplace/urls.py` — server-rendered workflows and role enforcement
 - `marketplace/admin.py` — staff management for marketplace data
 - `templates/` — Django templates copied and adapted from the supplied frontend plus the missing workflow pages
-- `static/css/style.css` — original stylesheet copied unchanged
+- `static/css/style.css` - shared styles for the original frontend and marketplace pages, including responsive back navigation
+- `static/js/back-navigation.js` - same-site back button used on Django-rendered pages
 
 ## Suggested local test accounts
 
@@ -77,9 +78,9 @@ Register one customer and one florist through the site. Create a superuser with 
 
 1. Add categories in Django admin and register a florist and a customer.
 2. Sign in as florist, add a product, edit it, verify another florist cannot edit it, and review its listing.
-3. Sign in as customer, browse products, add a product, update quantity within stock, remove it, and add it again.
-4. Attempt checkout while signed out; sign in as customer and submit delivery details.
-5. Place a COD order, verify the order number and success page, confirm inventory decreased and the cart cleared.
+3. Sign in as a customer or florist, browse products, add a product, update quantity within stock, remove it, and add it again.
+4. Attempt checkout while signed out; sign in as either buyer role (customer or florist) and submit delivery details.
+5. Place a COD order, verify the order number and success page, confirm inventory decreased and the buyer cart cleared.
 6. Try to exceed stock in the cart or order stale inventory and confirm the order is rejected with a message.
 7. Sign in as florist, view orders containing their products, and update order status.
 8. Sign in as superuser, review marketplace counts and orders at `/market-admin/`, and manage products/orders in `/django-admin/`.
