@@ -96,3 +96,7 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 ```
 
 Vercel sets `DEBUG=False` automatically, accepts `.vercel.app` hosts, and creates the demo SQLite schema in its temporary `/tmp` directory. This is only for a short-lived demo: the database is not durable, may reset when an instance restarts, and separate serverless instances may not share it. Do not store real customer or order data until a persistent database is configured.
+
+#### Create a demo admin on Vercel
+
+For a short-lived demo, set `DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD` as **Production** environment variables in Vercel, then redeploy. On each fresh Vercel instance, the WSGI startup runs migrations and creates that superuser if it does not already exist. Do not put the password in GitHub or source files. The temporary SQLite database means admin changes and sessions are not durable across instance restarts.
