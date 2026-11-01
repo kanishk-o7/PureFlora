@@ -10,6 +10,30 @@ if os.environ.get("VERCEL") == "1":
     from django.core.management import call_command
     call_command("migrate", interactive=False, verbosity=0)
 
+    # Seed common choices so a fresh temporary Vercel database has categories
+    # available in the florist product form and marketplace filters.
+    from django.utils.text import slugify
+    from marketplace.models import Category
+
+    for category_name in (
+        "Roses",
+        "Lilies",
+        "Tulips",
+        "Orchids",
+        "Carnations",
+        "Gerberas",
+        "Marigolds",
+        "Chrysanthemums",
+        "Sunflowers",
+        "Jasmine",
+        "Lotus",
+        "Seasonal",
+        "Exotic",
+    ):
+        Category.objects.get_or_create(
+            slug=slugify(category_name), defaults={"name": category_name}
+        )
+
     # Optional demo superuser bootstrap. Credentials stay in Vercel env vars,
     # never in source control. Temporary Vercel instances recreate this user.
     username = os.environ.get("DJANGO_SUPERUSER_USERNAME")
