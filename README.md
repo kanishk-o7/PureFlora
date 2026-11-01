@@ -86,3 +86,13 @@ Register one customer and one florist through the site. Create a superuser with 
 8. Sign in as superuser, review marketplace counts and orders at `/market-admin/`, and manage products/orders in `/django-admin/`.
 
 No Docker, Celery, external payment provider, REST API, or CSS framework is used.
+
+### Vercel demo deployment (temporary SQLite)
+
+This project can be imported into Vercel as a Django app. In Vercel project settings, set the **Root Directory** to `pure-flora-updated` if the GitHub repository contains this project inside a parent folder. Leave framework/build settings on their detected defaults, then add `DJANGO_SECRET_KEY` under **Settings → Environment Variables** before deploying. Generate a value locally with:
+
+```powershell
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Vercel sets `DEBUG=False` automatically, accepts `.vercel.app` hosts, and creates the demo SQLite schema in its temporary `/tmp` directory. This is only for a short-lived demo: the database is not durable, may reset when an instance restarts, and separate serverless instances may not share it. Do not store real customer or order data until a persistent database is configured.
